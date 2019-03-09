@@ -6,14 +6,11 @@
 # case, the build id files would conflict.
 %global _build_id_links none
 
-%define _driver_major   418
-%define _driver_minor   30
-
 # Named version, usually just the driver version, or "latest"
-%define _named_version branch-%{_driver_major}
+%define _named_version branch-%{driver_branch}
 
 %define kmod_vendor		nvidia
-%define kmod_driver_version	%{_driver_major}.%{_driver_minor}
+%define kmod_driver_version	%{driver}
 %define kmod_rpm_release	1
 # We use some default kernel (here the current RHEL 7.5 one) if
 # there's no --define="kernel x.y.z" passed to rpmbuild
@@ -50,9 +47,9 @@ Source1:	private_key.priv
 Source2:	public_key.der
 
 
-Name:		kmod-%{kmod_vendor}-%{_named_version}
+Name:		kmod-%{kmod_vendor}-%{kmod_driver_version}
 Version:	%{kmod_kernel}
-Release:	%{kmod_kernel_release}.%{kmod_rpm_release}%{dist}
+Release:	%{kmod_kernel_release}%{dist}
 Summary:	NVIDIA graphics driver
 Group:		System/Kernel
 License:	Nvidia
@@ -334,6 +331,9 @@ install -m 755 ld.gold %{buildroot}/%{_bindir}/ld.gold.nvidia.%{kmod_driver_vers
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
+* Fri Mar 08 2019 Kevin Mittman <kmittman@nvidia.com>
+ - Change from kmod-nvidia-branch-XXX-Y.YY.Y-YYYY.1.el7..rpm to kmod-nvidia-XXX.XX.XX-Y.YY.Y-YYY.el7..rpm
+
 * Thu Mar 07 2019 Kevin Mittman <kmittman@nvidia.com>
  - Initial .spec from Timm Bäder
 
