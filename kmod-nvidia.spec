@@ -73,7 +73,7 @@ Provides:		kernel-modules = %kmod_kernel_version.%{_target_cpu}
 Provides:		nvidia-kmod = %{?epoch:%{epoch}:}%{kmod_driver_version}
 # We need this so we can install multiple versions of the kernel module at the same time
 Provides:		installonlypkg(kernel-module)
-Requires:		nvidia-driver-%{_named_version} = %{?epoch:%{epoch}:}%{kmod_driver_version}
+Requires:		nvidia-driver = %{?epoch:%{epoch}:}%{kmod_driver_version}
 Requires(post):		%{sbindir}/weak-modules
 Requires(postun):	%{sbindir}/weak-modules
 # We do NOT have a Requires: for the kernel version the package got built against here
@@ -83,7 +83,7 @@ Requires(postun):	%{sbindir}/weak-modules
 # TODO: We want to express that this package is suitable for a range of kernel versions
 #       and not just the kmod_kernel_version.
 %if 0%{?rhel} >= 8 || 0%{?fedora}
-Supplements: (nvidia-driver-%{_named_version} and kernel >= %{kmod_kernel_version})
+Supplements: (nvidia-driver = %{?epoch:%{epoch}:}%{kmod_driver_version} and kernel >= %{kmod_kernel_version})
 %endif
 
 %description
@@ -331,6 +331,9 @@ install -m 755 ld.gold %{buildroot}/%{_bindir}/ld.gold.nvidia.%{kmod_driver_vers
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
+* Mon Mar 11 2019 Kevin Mittman <kmittman@nvidia.com>
+ - Remove %{_name_version} from Requires and Supplments
+
 * Fri Mar 08 2019 Kevin Mittman <kmittman@nvidia.com>
  - Change from kmod-nvidia-branch-XXX-Y.YY.Y-YYYY.1.el7..rpm to kmod-nvidia-XXX.XX.XX-Y.YY.Y-YYY.el7..rpm
 
