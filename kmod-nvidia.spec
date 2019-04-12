@@ -7,7 +7,7 @@
 %global _build_id_links none
 
 # Named version, usually just the driver version, or "latest"
-%define _named_version branch-%{driver_branch}
+%define _named_version %{driver_branch}
 
 %define kmod_vendor		nvidia
 %define kmod_driver_version	%{driver}
@@ -47,9 +47,9 @@ Source1:	private_key.priv
 Source2:	public_key.der
 
 
-Name:		kmod-%{kmod_vendor}-%{kmod_driver_version}
+Name:		kmod-%{kmod_vendor}-%{_named_version}
 Version:	%{kmod_kernel}
-Release:	%{kmod_kernel_release}%{dist}
+Release:	%{kmod_kernel_release}.r%{driver}%{dist}
 Summary:	NVIDIA graphics driver
 Group:		System/Kernel
 License:	Nvidia
@@ -331,6 +331,9 @@ install -m 755 ld.gold %{buildroot}/%{_bindir}/ld.gold.nvidia.%{kmod_driver_vers
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
+* Fri Apr 12 2019 Kevin Mittman <kmittman@nvidia.com>
+ - Change to kmod-nvidia-branch-AAA-X.XX.X-YYY.Y.Y.rAAA.BB.BB.el7.arch.rpm
+
 * Mon Mar 11 2019 Kevin Mittman <kmittman@nvidia.com>
  - Remove %{_name_version} from Requires and Supplments
 
