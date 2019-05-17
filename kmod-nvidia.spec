@@ -73,7 +73,7 @@ Provides:		kernel-modules = %kmod_kernel_version.%{_target_cpu}
 Provides:		nvidia-kmod = %{?epoch:%{epoch}:}%{kmod_driver_version}
 # We need this so we can install multiple versions of the kernel module at the same time
 Provides:		installonlypkg(kernel-module)
-Requires:		nvidia-driver = %{?epoch:%{epoch}:}%{kmod_driver_version}
+Requires:		nvidia-driver-%{_named_version} = %{?epoch:%{epoch}:}%{kmod_driver_version}
 Requires(post):		%{sbindir}/weak-modules
 Requires(postun):	%{sbindir}/weak-modules
 # We do NOT have a Requires: for the kernel version the package got built against here
@@ -331,6 +331,9 @@ install -m 755 ld.gold %{buildroot}/%{_bindir}/ld.gold.nvidia.%{kmod_driver_vers
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
+* Fri May 17 2019 Kevin Mittman <kmittman@nvidia.com>
+ - Change Requires: s/nvidia-driver/nvidia-driver-%{driver_branch}/
+
 * Fri Apr 12 2019 Kevin Mittman <kmittman@nvidia.com>
  - Change to kmod-nvidia-branch-AAA-X.XX.X-YYY.Y.Y.rAAA.BB.BB.el7.arch.rpm
 
