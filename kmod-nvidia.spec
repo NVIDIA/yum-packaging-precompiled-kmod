@@ -18,7 +18,7 @@
 %define kmod_kernel_release	%{?kernel_release}%{?!kernel_release:862}
 %define kmod_kernel_version	%{kmod_kernel}-%{kmod_kernel_release}%{dist}
 %define kmod_kbuild_dir		drivers/video/nvidia
-%define kmod_module_path	/lib/modules/%{kmod_kernel_version}.$(arch)/extra/%{kmod_kbuild_dir}
+%define kmod_module_path	/lib/modules/%{kmod_kernel_version}.%{_arch}/extra/%{kmod_kbuild_dir}
 %define kmod_share_dir		%{_prefix}/share/nvidia-%{kmod_kernel_version}
 # NOTE: We disambiguate the installation path of the .o files twice, once for the driver version
 # and once for the kernel version. This might not be necessary (in the future).
@@ -27,7 +27,7 @@
 # For compatibility with upstream Negativo17 shell scripts, we use nvidia-kmod
 # instead of kmod-nvidia for the source tarball.
 %define kmod_source_name	%{kmod_vendor}-kmod-%{kmod_driver_version}-x86_64
-%define kmod_kernel_source	/usr/src/kernels/%{kmod_kernel_version}.$(arch)
+%define kmod_kernel_source	/usr/src/kernels/%{kmod_kernel_version}.%{_arch}
 
 # Global re-define for the strip command we apply to all the .o files
 %define strip strip -g --strip-unneeded
@@ -74,27 +74,13 @@ Provides:		nvidia-kmod = %{?epoch:%{epoch}:}%{kmod_driver_version}
 # We need this so we can install multiple versions of the kernel module at the same time
 Provides:		installonlypkg(kernel-module)
 Requires:		nvidia-driver-%{_named_version} = %{?epoch:%{epoch}:}%{kmod_driver_version}
-Requires(post):		%{sbindir}/weak-modules
-Requires(postun):	%{sbindir}/weak-modules
-# We do NOT have a Requires: for the kernel version the package got built against here
-# since it might not be installed on the user system. The yum plugin will handle
-# installing only kernel module versions compatible with the installed kernel(s).
 
-# TODO: We want to express that this package is suitable for a range of kernel versions
-#       and not just the kmod_kernel_version.
 %if 0%{?rhel} >= 8 || 0%{?fedora}
-Supplements: (nvidia-driver = %{?epoch:%{epoch}:}%{kmod_driver_version} and kernel >= %{kmod_kernel_version})
+Supplements: (nvidia-driver-%{_named_version} and kernel >= %{kmod_kernel_version})
 %endif
 
 %description
 The NVidia %{kmod_driver_version} display driver kernel module for kernel %{kmod_kernel_version}
-
-%pre
-weak_modules_path=`which weak-modules 2>/dev/null`
-if [ -z "${weak_modules_path}" ]; then
-	echo "weak-modules script not found. Exiting ..."
-	exit 1
-fi
 
 %prep
 %setup -q -n %{kmod_source_name}
@@ -116,18 +102,6 @@ unset LD_RUN_PATH
 unset LD_LIBRARY_PATH
 
 %{make_build} SYSSRC=${KERNEL_SOURCES} SYSOUT=${KERNEL_OUTPUT}
-
-module_weak_path=$(echo m | sed 's/[\/]*[^\/]*$//')
-if [ -z "$module_weak_path" ]; then
-	module_weak_path=%{name}
-else
-	module_weak_path=%{name}/$module_weak_path
-fi
-
-for m in %{kmod_modules}; do
-	echo "override $m $(echo %{kmod_kernel_version} | sed 's/\.[^\.]*$//').* weak-updates/$module_weak_path" >> depmod.conf
-done
-
 
 # These will be used together with the .mod.o file as input for ld,
 # which links the .ko. To keep the file size down and *make it more deterministic*,
@@ -204,6 +178,7 @@ chmod +x %{postld}
 
 %{strip} nvidia.o
 %{postld} -r -m elf_x86_64 -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia.ko nvidia.o nvidia.mod.o
+rm nvidia.o
 
 %{postld} -r -m elf_x86_64 -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia-uvm.ko nvidia-uvm/nvidia-uvm.o nvidia-uvm.mod.o
 
@@ -216,6 +191,7 @@ chmod +x %{postld}
 
 %{strip} nvidia-modeset.o
 %{postld} -r -m elf_x86_64 -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia-modeset.ko nvidia-modeset.o nvidia-modeset.mod.o
+rm nvidia-modeset.o
 
 
 %{postld} -r -m elf_x86_64 -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia-drm.ko nvidia-drm/nvidia-drm.o nvidia-drm.mod.o
@@ -228,28 +204,10 @@ for m in %{kmod_modules}; do
 	cat %{kmod_o_dir}/${m}.sig >> %{kmod_module_path}/${m}.ko
 done
 
-# weak modules (rhel only)
-%if 0%{?rhel}
-	echo -e "%{kmod_module_path}/nvidia.ko\n%{kmod_module_path}/nvidia-modeset.ko\n%{kmod_module_path}/nvidia-uvm.ko\n%{kmod_module_path}/nvidia-drm.ko" | weak-modules --add-modules
-%endif
-
+depmod -a
 
 %postun
-# Only for actual removes, not upgrades
-if [ $1 -eq 0 ]; then
-	# if weak-modules were not available, we wouldn't have been able to install
-	# the package in the first place (see pre)
-	weak_modules_path=`which weak-modules 2>/dev/null`
-
-	# Remove all the .ko files
-	for m in %{kmod_modules}; do
-		rm -f %{kmod_module_path}/$m.ko
-	done
-
-	echo -e "%{kmod_module_path}/nvidia.ko\n%{kmod_module_path}/nvidia-modeset.ko\n%{kmod_module_path}/nvidia-uvm.ko\n%{kmod_module_path}/nvidia-drm.ko" | weak-modules --remove-modules
-fi
-
-
+depmod -a
 
 
 %install
@@ -290,7 +248,6 @@ install nvidia-drm.sig %{buildroot}/%{kmod_o_dir}/
 install nvidia-drm.o %{buildroot}/%{kmod_o_dir}/nvidia-drm/
 
 # misc
-install -m 644 -D depmod.conf %{buildroot}/etc/depmod.d/nvidia-%{kmod_kernel_version}.conf
 install -m 644 -D module-common.lds %{buildroot}/%{kmod_share_dir}/
 
 install -m 755 ld.gold %{buildroot}/%{_bindir}/ld.gold.nvidia.%{kmod_driver_version}
@@ -300,37 +257,23 @@ install -m 755 ld.gold %{buildroot}/%{_bindir}/ld.gold.nvidia.%{kmod_driver_vers
 %files
 %defattr(644,root,root,755)
 
-# nvidia.o
-%{kmod_o_dir}/nvidia.mod.o
-%{kmod_o_dir}/nvidia.sig
-%{kmod_o_dir}/nvidia/nv-interface.o
-%{kmod_o_dir}/nvidia/nv-kernel.o
-
-# nvidia-uvm.o
-%{kmod_o_dir}/nvidia-uvm.mod.o
-%{kmod_o_dir}/nvidia-uvm.sig
-%{kmod_o_dir}/nvidia-uvm/nvidia-uvm.o
-
-# nvidia-modeset.o
-%{kmod_o_dir}/nvidia-modeset.mod.o
-%{kmod_o_dir}/nvidia-modeset.sig
-%{kmod_o_dir}/nvidia-modeset/nv-modeset-interface.o
-%{kmod_o_dir}/nvidia-modeset/nv-modeset-kernel.o
-
-# nvidia-drm.o
-%{kmod_o_dir}/nvidia-drm.mod.o
-%{kmod_o_dir}/nvidia-drm.sig
-%{kmod_o_dir}/nvidia-drm/nvidia-drm.o
-
+%{kmod_o_dir}
+%{kmod_share_dir}
 %{_bindir}/ld.gold.nvidia.%{kmod_driver_version}
 
-%{kmod_share_dir}/module-common.lds
-%config(noreplace) /etc/depmod.d/nvidia-%{kmod_kernel_version}.conf
+%ghost %{kmod_module_path}
+%ghost %{kmod_module_path}/nvidia.ko
+%ghost %{kmod_module_path}/nvidia-uvm.ko
+%ghost %{kmod_module_path}/nvidia-drm.ko
+%ghost %{kmod_module_path}/nvidia-modeset.ko
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
+* Fri May 24 2019 Kevin Mittman <kmittman@nvidia.com>
+ - Fixes for yum swap including %ghost and removal of postun actions
+
 * Fri May 17 2019 Kevin Mittman <kmittman@nvidia.com>
  - Change Requires: s/nvidia-driver/nvidia-driver-%{driver_branch}/
 
