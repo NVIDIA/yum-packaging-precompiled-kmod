@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/bin/env python3
 
 from __future__ import print_function
 from os import listdir
@@ -45,6 +45,7 @@ BRANCH_PKGS = [
   'nvidia-modprobe',
   'nvidia-settings',
   'nvidia-xconfig',
+  'nvidia-kmod-common',
 
   'cuda-drivers-redhat',
 ]
@@ -92,6 +93,30 @@ class Branch:
     def is_dkms(self):
         return 'dkms' in self.name
 
+def version_from_rpm_filename(filename):
+    # Remove file extension
+    filename = filename[:filename.rfind('.')]
+    # Remove arch
+    filename = filename[:filename.rfind('.')]
+    # Remove dist
+    filename = filename[:filename.rfind('.')]
+    hyphen_parts = filename.split('-')
+    # Remove package release
+    release = hyphen_parts[len(hyphen_parts) - 1]
+    hyphen_parts = hyphen_parts[:-1]
+    # Now the last part is the full version as a string
+    version = hyphen_parts[len(hyphen_parts) - 1]
+    version_parts = version.split('.')
+
+    return (int(version_parts[0]), int(version_parts[1]), int(release))
+
+def verkey_rpms(rpm_a):
+    version_a = version_from_rpm_filename(rpm_a)
+    return (version_a[0] * 1000 * 1000) + (version_a[1] * 1000) + (version_a[2])
+
+def sort_rpms(rpms):
+    return sorted(rpms, reverse = True, key = verkey_rpms)
+
 def kmod_belongs_to(kmod_filename, branch):
     return branch.version() in kmod_filename
 
@@ -100,7 +125,7 @@ def get_rpm_epoch(rpmfile, repodir):
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     stdout = process.communicate()[0]
 
-    return stdout
+    return stdout.decode('utf-8')
 
 def rpm_is_pkgname(rpm, pkgname, pkgversion = ''):
     """
@@ -115,21 +140,21 @@ def rpm_is_pkgname(rpm, pkgname, pkgversion = ''):
         return rpm.startswith(pkgname) and pkgversion in rpm and rpm_stops == pkg_stops + 2
 
 def rpm_from_pkgname(rpms, pkgname, pkgversion = ''):
-    relevant_rpms = filter(lambda f: rpm_is_pkgname(f, pkgname, pkgversion), rpms)
+    candidates = [f for f in rpms if rpm_is_pkgname(f, pkgname, pkgversion)]
 
-    if len(relevant_rpms) == 0:
+    if len(candidates) == 0:
+        print('ERROR: No package named ' + pkgname + ' in version "' + \
+                pkgversion + '" found in rpmdir')
         return None
 
-    # If no pkgversion is given, we prefer the one with the highest version number,
-    # just like package managers do.
-    if pkgversion == '':
-        relevant_rpms.sort(reverse = True) # Simply sort by name
-    else:
-        if len(relevant_rpms) > 1:
-            print('Expected exactly one rpm for branch package "' + pkgname + '" in version ' \
-                    + pkgversion + ' but I have ' + str(relevant_rpms))
+    # If a pkgversion is given, we should generally have only one rpm per
+    # stream. However, if there are mulitple rpm files in the given version
+    # but with different release numbers, we need to use the latest one, so
+    # just sort the rpms
 
-    return relevant_rpms[0]
+    candidates = sort_rpms(candidates)
+
+    return candidates[0]
 
 def filename_to_nevra(filename, repodir):
     epoch = get_rpm_epoch(filename, repodir)
@@ -160,7 +185,7 @@ if __name__ == '__main__':
     outfile = ''
 
     if len(sys.argv) > 1:
-        repodir = sys.argv[1]
+        repodir = sys.argv[1] + '/'
     else:
         print('Usage: ' + sys.argv[0] + ' [INDIR] [OUTFILE]')
         sys.exit()
@@ -172,13 +197,18 @@ if __name__ == '__main__':
     now = datetime.datetime.now()
 
     repodir_contents = listdir(repodir)
-    rpm_files = filter(lambda f: isfile(join(repodir, f)), repodir_contents)
-    driver_rpms = filter(lambda n: n.startswith(BRANCH_PKGS[0]), rpm_files)
-    kmod_rpms = filter(lambda n: n.startswith(KMOD_PKG_PREFIX), rpm_files)
+    rpm_files = [f for f in repodir_contents if isfile(join(repodir, f))]
+    driver_rpms = [n for n in rpm_files if n.startswith(BRANCH_PKGS[0])]
+    kmod_rpms = [n for n in rpm_files if n.startswith(KMOD_PKG_PREFIX)]
+
+    if len(driver_rpms) == 0:
+        print('Error: No driver rpms (starting with ' + BRANCH_PKGS[0] + ') found.')
+        sys.exit()
 
     branches = []
     # Figure out the branches
-    driver_rpms.sort(reverse = True)
+    driver_rpms = sort_rpms(driver_rpms)
+
     for pkg in driver_rpms:
         stops = len(BRANCH_PKGS[0].split('-'))
         pkg_stops = len(pkg.split('-'))
@@ -196,20 +226,15 @@ if __name__ == '__main__':
         elif len(branches) > 0 and branches[len(branches) - 1].major != major:
             branches.append(Branch(major, major, minor))
 
-    branches.sort()
+    branches = sorted(branches)
 
     # Add 'latest' branch with the same version as the highest-versioned other branch
     latest = branches[0]
     latest_branch = Branch('latest', latest.major, latest.minor)
     branches.insert(0, latest_branch)
     print('Latest Branch: ' + latest_branch.version())
-
-    for index, branch in enumerate(branches):
-        if 'dkms' in branch.name:
-            continue;
-
-        dkms_branch = Branch(branch.name + '-dkms', branch.major, branch.minor)
-        branches.insert(index + 1, dkms_branch)
+    latest_dkms_branch = Branch('latest-dkms', latest.major, latest.minor)
+    branches.insert(1, latest_dkms_branch)
 
     for branch in branches:
         print('Branch: ' + branch.name + '(Version: ' + branch.version()  + ')')
@@ -243,8 +268,6 @@ if __name__ == '__main__':
             branch_pkg = rpm_from_pkgname(rpm_files, pkg, branch.version())
             if branch_pkg:
                 out.tab().tab().tab().line('- ' + filename_to_nevra(branch_pkg, repodir))
-            else:
-                print('WARNING: Branch ' + branch.name + ' does not have a ' + pkg + ' package')
 
         for pkg in LATEST_PKGS:
             latest_pkg = rpm_from_pkgname(rpm_files, pkg)
@@ -258,8 +281,6 @@ if __name__ == '__main__':
             dkms_pkg = rpm_from_pkgname(rpm_files, 'dkms-nvidia', branch.version())
             if dkms_pkg:
                 out.tab().tab().tab().line('- ' + filename_to_nevra(dkms_pkg, repodir))
-            else:
-                print('WARNING: Branch ' + branch.name + ' does not have a dkms-nvidia package')
 
         out.next()
 
