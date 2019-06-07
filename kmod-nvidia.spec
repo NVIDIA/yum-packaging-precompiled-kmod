@@ -47,9 +47,9 @@ Source1:	private_key.priv
 Source2:	public_key.der
 
 
-Name:		kmod-%{kmod_vendor}-%{_named_version}
-Version:	%{kmod_kernel}
-Release:	%{kmod_kernel_release}.r%{driver}%{dist}
+Name:		kmod-%{kmod_vendor}-%{kmod_driver_version}-%{kmod_kernel}-%{kmod_kernel_release}
+Version:	%{kmod_driver_version}
+Release:	2%{dist}
 Summary:	NVIDIA graphics driver
 Group:		System/Kernel
 License:	Nvidia
@@ -71,13 +71,20 @@ Provides:		kernel-modules = %kmod_kernel_version.%{_target_cpu}
 # DKMS kernel module package both provide this and the driver package only needs
 # one of them to satisfy the dependency.
 Provides:		nvidia-kmod = %{?epoch:%{epoch}:}%{kmod_driver_version}
-# We need this so we can install multiple versions of the kernel module at the same time
-Provides:		installonlypkg(kernel-module)
-Requires:		nvidia-driver-%{_named_version} = %{?epoch:%{epoch}:}%{kmod_driver_version}
 
 %if 0%{?rhel} >= 8 || 0%{?fedora}
-Supplements: (nvidia-driver-%{_named_version} and kernel >= %{kmod_kernel_version})
-%endif
+Supplements: (nvidia-driver = %{epoch}:%{kmod_driver_version} and kernel = %{kmod_kernel_version})
+# We cannot require the version of the driver in the kmod package since
+# dnf won't remove the kmod package automatically when enabling a different
+# module stream. This will cause the transaction to fail.
+#Requires:	nvidia-driver = %{epoch}:%{version}
+
+# This works though and will automatically remove the kmod package when removing
+# the kernel package.
+Requires: kernel = %{kmod_kernel_version}
+Conflicts: dkms-nvidia
+
+%endif # fedora/rhel8
 
 %description
 The NVidia %{kmod_driver_version} display driver kernel module for kernel %{kmod_kernel_version}
@@ -257,20 +264,39 @@ install -m 755 ld.gold %{buildroot}/%{_bindir}/ld.gold.nvidia.%{kmod_driver_vers
 %files
 %defattr(644,root,root,755)
 
-%{kmod_o_dir}
-%{kmod_share_dir}
+# nvidia.o
+%{kmod_o_dir}/nvidia.mod.o
+%{kmod_o_dir}/nvidia.sig
+%{kmod_o_dir}/nvidia/nv-interface.o
+%{kmod_o_dir}/nvidia/nv-kernel.o
+
+# nvidia-uvm.o
+%{kmod_o_dir}/nvidia-uvm.mod.o
+%{kmod_o_dir}/nvidia-uvm.sig
+%{kmod_o_dir}/nvidia-uvm/nvidia-uvm.o
+
+# nvidia-modeset.o
+%{kmod_o_dir}/nvidia-modeset.mod.o
+%{kmod_o_dir}/nvidia-modeset.sig
+%{kmod_o_dir}/nvidia-modeset/nv-modeset-interface.o
+%{kmod_o_dir}/nvidia-modeset/nv-modeset-kernel.o
+
+# nvidia-drm.o
+%{kmod_o_dir}/nvidia-drm.mod.o
+%{kmod_o_dir}/nvidia-drm.sig
+%{kmod_o_dir}/nvidia-drm/nvidia-drm.o
+
 %{_bindir}/ld.gold.nvidia.%{kmod_driver_version}
 
-%ghost %{kmod_module_path}
-%ghost %{kmod_module_path}/nvidia.ko
-%ghost %{kmod_module_path}/nvidia-uvm.ko
-%ghost %{kmod_module_path}/nvidia-drm.ko
-%ghost %{kmod_module_path}/nvidia-modeset.ko
+%{kmod_share_dir}/module-common.lds
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
+* Fri Jun 07 2019 Kevin Mittman <kmittman@nvidia.com>
+ - Rename package, Change Requires, Remove %ghost
+
 * Fri May 24 2019 Kevin Mittman <kmittman@nvidia.com>
  - Fixes for yum swap including %ghost and removal of postun actions
 
