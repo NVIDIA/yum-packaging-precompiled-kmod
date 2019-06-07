@@ -228,6 +228,17 @@ if __name__ == '__main__':
 
     branches = sorted(branches)
 
+    if len(branches) == 0:
+        print('Error: Could not determine branches from the given rpm files in ' + repodir)
+        print('RPM files found:')
+        for p in repodir_contents:
+            print(' - ' + str(p))
+        print('Driver rpms:')
+        for p in driver_rpms:
+            print(' - ' + str(p))
+
+        sys.exit()
+
     # Add 'latest' branch with the same version as the highest-versioned other branch
     latest = branches[0]
     latest_branch = Branch('latest', latest.major, latest.minor)
