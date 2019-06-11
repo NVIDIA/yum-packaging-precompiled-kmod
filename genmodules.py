@@ -47,7 +47,7 @@ BRANCH_PKGS = [
   'nvidia-xconfig',
   'nvidia-kmod-common',
 
-  'cuda-drivers-redhat',
+  'cuda-drivers',
 ]
 
 class Writer:
@@ -122,7 +122,7 @@ def kmod_belongs_to(kmod_filename, branch):
 
 def get_rpm_epoch(rpmfile, repodir):
     cmd = ['rpm', '-q', '--qf', '%{epochnum}', repodir + rpmfile]
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=None)
     stdout = process.communicate()[0]
 
     return stdout.decode('utf-8')
@@ -270,7 +270,7 @@ if __name__ == '__main__':
         out.tab().tab().tab().line('rpms:')
         out.tab().tab().tab().tab().line('- ' + BRANCH_PKGS[0])
         if branch.is_dkms():
-            out.tab().tab().tab().tab().line('- dkms-nvidia')
+            out.tab().tab().tab().tab().line('- kmod-nvidia-latest-dkms')
 
 
         out.tab().line('artifacts:')
@@ -289,7 +289,7 @@ if __name__ == '__main__':
             out.tab().tab().tab().line('- ' + filename_to_nevra(rpm, repodir))
 
         if branch.is_dkms():
-            dkms_pkg = rpm_from_pkgname(rpm_files, 'dkms-nvidia', branch.version())
+            dkms_pkg = rpm_from_pkgname(rpm_files, 'kmod-nvidia-latest-dkms', branch.version())
             if dkms_pkg:
                 out.tab().tab().tab().line('- ' + filename_to_nevra(dkms_pkg, repodir))
 
