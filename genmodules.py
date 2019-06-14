@@ -94,18 +94,23 @@ class Branch:
         return 'dkms' in self.name
 
 def version_from_rpm_filename(filename):
-    # Remove file extension
-    filename = filename[:filename.rfind('.')]
-    # Remove arch
-    filename = filename[:filename.rfind('.')]
-    # Remove dist
-    filename = filename[:filename.rfind('.')]
+    # name - version - release.dist.arch.rpm
     hyphen_parts = filename.split('-')
-    # Remove package release
-    release = hyphen_parts[len(hyphen_parts) - 1]
-    hyphen_parts = hyphen_parts[:-1]
-    # Now the last part is the full version as a string
-    version = hyphen_parts[len(hyphen_parts) - 1]
+
+    assert(len(hyphen_parts) >= 3)
+
+    dotpart = hyphen_parts[len(hyphen_parts) - 1]
+    ndots = len(dotpart.split('.'))
+    dotpart = dotpart[:dotpart.rfind('.')] # Remove the file extension
+    dotpart = dotpart[:dotpart.rfind('.')] # Remove the arch
+    if ndots >= 4:
+        dotpart = dotpart[:dotpart.rfind('.')] # Remove the dist
+
+    # The remainder should just be the release.
+    release = dotpart
+
+    # Get the version
+    version = hyphen_parts[len(hyphen_parts) - 2]
     version_parts = version.split('.')
 
     return (int(version_parts[0]), int(version_parts[1]), int(release))
@@ -117,12 +122,16 @@ def verkey_rpms(rpm_a):
 def sort_rpms(rpms):
     return sorted(rpms, reverse = True, key = verkey_rpms)
 
+def rpm_is_kmod(filename):
+    return filename.startswith(KMOD_PKG_PREFIX) and not 'dkms' in filename
+
 def kmod_belongs_to(kmod_filename, branch):
     return branch.version() in kmod_filename
 
 def get_rpm_epoch(rpmfile, repodir):
     cmd = ['rpm', '-q', '--qf', '%{epochnum}', repodir + rpmfile]
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=None)
+    null = open(os.devnull, 'w')
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=null)
     stdout = process.communicate()[0]
 
     return stdout.decode('utf-8')
@@ -199,7 +208,7 @@ if __name__ == '__main__':
     repodir_contents = listdir(repodir)
     rpm_files = [f for f in repodir_contents if isfile(join(repodir, f))]
     driver_rpms = [n for n in rpm_files if n.startswith(BRANCH_PKGS[0])]
-    kmod_rpms = [n for n in rpm_files if n.startswith(KMOD_PKG_PREFIX)]
+    kmod_rpms = [n for n in rpm_files if rpm_is_kmod(n)]
 
     if len(driver_rpms) == 0:
         print('Error: No driver rpms (starting with ' + BRANCH_PKGS[0] + ') found.')
@@ -264,34 +273,34 @@ if __name__ == '__main__':
         out.tab().tab().line('module:')
         out.tab().tab().tab().line('- MIT')
 
-        out.tab().line('profiles:')
-        out.tab().tab().line('default:')
-        out.tab().tab().tab().line('description: Default installation')
-        out.tab().tab().tab().line('rpms:')
-        out.tab().tab().tab().tab().line('- ' + BRANCH_PKGS[0])
-        if branch.is_dkms():
-            out.tab().tab().tab().tab().line('- kmod-nvidia-latest-dkms')
-
-
         out.tab().line('artifacts:')
         out.tab().tab().line('rpms:')
+        existing_branch_pkgs = []
         for pkg in BRANCH_PKGS:
             branch_pkg = rpm_from_pkgname(rpm_files, pkg, branch.version())
             if branch_pkg:
                 out.tab().tab().tab().line('- ' + filename_to_nevra(branch_pkg, repodir))
-
+                existing_branch_pkgs.append(pkg)
         for pkg in LATEST_PKGS:
             latest_pkg = rpm_from_pkgname(rpm_files, pkg)
             out.tab().tab().tab().line('- ' + filename_to_nevra(latest_pkg, repodir))
+        if branch.is_dkms():
+            dkms_pkg = rpm_from_pkgname(rpm_files, 'kmod-nvidia-latest-dkms', branch.version())
+            if dkms_pkg:
+                out.tab().tab().tab().line('- ' + filename_to_nevra(dkms_pkg, repodir))
 
         # All the kmod rpms which belong to this branch
         for rpm in filter(lambda r: kmod_belongs_to(r, branch), kmod_rpms):
             out.tab().tab().tab().line('- ' + filename_to_nevra(rpm, repodir))
 
+        out.tab().line('profiles:')
+        out.tab().tab().line('default:')
+        out.tab().tab().tab().line('description: Default installation')
+        out.tab().tab().tab().line('rpms:')
+        for pkg in existing_branch_pkgs:
+            out.tab().tab().tab().tab().line('- ' + pkg)
         if branch.is_dkms():
-            dkms_pkg = rpm_from_pkgname(rpm_files, 'kmod-nvidia-latest-dkms', branch.version())
-            if dkms_pkg:
-                out.tab().tab().tab().line('- ' + filename_to_nevra(dkms_pkg, repodir))
+            out.tab().tab().tab().tab().line('- kmod-nvidia-latest-dkms')
 
         out.next()
 
