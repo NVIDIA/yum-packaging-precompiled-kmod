@@ -288,10 +288,10 @@ if __name__ == '__main__':
             dkms_pkg = rpm_from_pkgname(rpm_files, 'kmod-nvidia-latest-dkms', branch.version())
             if dkms_pkg:
                 out.tab().tab().tab().line('- ' + filename_to_nevra(dkms_pkg, repodir))
-
-        # All the kmod rpms which belong to this branch
-        for rpm in filter(lambda r: kmod_belongs_to(r, branch), kmod_rpms):
-            out.tab().tab().tab().line('- ' + filename_to_nevra(rpm, repodir))
+        else:
+            # All the kmod rpms which belong to this branch
+            for rpm in filter(lambda r: kmod_belongs_to(r, branch), kmod_rpms):
+                out.tab().tab().tab().line('- ' + filename_to_nevra(rpm, repodir))
 
         out.tab().line('profiles:')
         out.tab().tab().line('default:')
