@@ -75,6 +75,8 @@ Provides:		nvidia-kmod = %{?epoch:%{epoch}:}%{kmod_driver_version}
 Provides:		installonlypkg(kernel-module)
 Requires:		nvidia-driver-%{_named_version} = %{?epoch:%{epoch}:}%{kmod_driver_version}
 
+Conflicts:      kmod-nvidia-latest-dkms
+
 %if 0%{?rhel} >= 8 || 0%{?fedora}
 Supplements: (nvidia-driver-%{_named_version} and kernel >= %{kmod_kernel_version})
 %endif
@@ -271,6 +273,9 @@ install -m 755 ld.gold %{buildroot}/%{_bindir}/ld.gold.nvidia.%{kmod_driver_vers
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
+* Wed Jul 10 2019 Kevin Mittman <kmittman@nvidia.com>
+ - Fix for yum swap, add Conflicts: kmod-nvidia-latest-dkms
+
 * Fri May 24 2019 Kevin Mittman <kmittman@nvidia.com>
  - Fixes for yum swap including %ghost and removal of postun actions
 
