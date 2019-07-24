@@ -308,7 +308,7 @@ if __name__ == '__main__':
     out.line('version: 1')
     out.line('data:')
     out.tab().line('module: nvidia-driver')
-    out.tab().line('stream: latest')
+    out.tab().line('stream: latest-dkms')
     out.tab().line('profiles:')
     for branch in branches:
         out.tab().tab().line(branch.name + ': [default]')
