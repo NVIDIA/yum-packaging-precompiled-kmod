@@ -129,7 +129,7 @@ def kmod_belongs_to(kmod_filename, branch):
     return branch.version() in kmod_filename
 
 def get_rpm_epoch(rpmfile, repodir):
-    cmd = ['rpm', '-q', '--qf', '%{epochnum}', repodir + rpmfile]
+    cmd = ['rpm', '-qp', '--nosignature', '--qf', '%{epochnum}', repodir + rpmfile]
     null = open(os.devnull, 'w')
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=null)
     stdout = process.communicate()[0]
