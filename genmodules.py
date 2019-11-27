@@ -1,4 +1,4 @@
-#!/bin/env python3
+#!/bin/env python2
 
 from __future__ import print_function
 from os import listdir
@@ -44,6 +44,7 @@ BRANCH_PKGS = [
   'nvidia-persistenced',
   'nvidia-modprobe',
   'nvidia-settings',
+  'nvidia-libXNVCtrl',
   'nvidia-xconfig',
   'nvidia-kmod-common',
 
@@ -130,9 +131,12 @@ def kmod_belongs_to(kmod_filename, branch):
 
 def get_rpm_epoch(rpmfile, repodir):
     cmd = ['rpm', '-qp', '--nosignature', '--qf', '%{epochnum}', repodir + rpmfile]
-    null = open(os.devnull, 'w')
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=null)
-    stdout = process.communicate()[0]
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = process.communicate()
+
+    # Print warnings but try to ignore the one about the key
+    if stderr and not stderr.endswith('NOKEY\n'):
+        print(stderr)
 
     return stdout.decode('utf-8')
 
@@ -148,13 +152,15 @@ def rpm_is_pkgname(rpm, pkgname, pkgversion = ''):
     else:
         return rpm.startswith(pkgname) and pkgversion in rpm and rpm_stops == pkg_stops + 2
 
-def rpm_from_pkgname(rpms, pkgname, pkgversion = ''):
+def all_rpms_from_pkgname(rpms, pkgname, majorversion):
+    candidates = [f for f in rpms if rpm_is_pkgname(f, pkgname, majorversion)]
+
+    return sort_rpms(candidates) # Sort them anyway, just because
+
+def latest_rpm_from_pkgname(rpms, pkgname, pkgversion = ''):
     candidates = [f for f in rpms if rpm_is_pkgname(f, pkgname, pkgversion)]
 
-    if len(candidates) == 0:
-        print('ERROR: No package named ' + pkgname + ' in version "' + \
-                pkgversion + '" found in rpmdir')
-        return None
+    if len(candidates) == 0: return None
 
     # If a pkgversion is given, we should generally have only one rpm per
     # stream. However, if there are mulitple rpm files in the given version
@@ -167,25 +173,23 @@ def rpm_from_pkgname(rpms, pkgname, pkgversion = ''):
 
 def filename_to_nevra(filename, repodir):
     epoch = get_rpm_epoch(filename, repodir)
-    # Remove file extension
-    filename = filename[:filename.rfind('.')]
-    # Remove arch
-    arch = filename[filename.rfind('.') + 1:]
-    filename = filename[:filename.rfind('.')]
-    # Remove dist
-    dist = filename[filename.rfind('.') + 1:]
-    filename = filename[:filename.rfind('.')]
     hyphen_parts = filename.split('-')
-    nevra = ''
-    for i in range(0, len(hyphen_parts) - 2):
-        nevra += hyphen_parts[i]
-        nevra += '-'
 
-    nevra += str(epoch)+ ':'
+    assert len(hyphen_parts) > 2, "filename not well-formed: %r" % filename
+
+    nevra = ''
+    # Add all parts until the version
+    for i in range(0, len(hyphen_parts) - 2):
+        nevra += hyphen_parts[i] + '-'
+
+    nevra += epoch
+    nevra += ':'
     nevra += hyphen_parts[len(hyphen_parts) - 2]
-    nevra += '-' + hyphen_parts[len(hyphen_parts) - 1]
-    nevra += '.' + dist
-    nevra += '.' + arch
+
+    last = hyphen_parts[len(hyphen_parts) - 1] # Remove file extension
+    last = last[:last.rfind('.')]
+    nevra += '-'
+    nevra += last
 
     return nevra
 
@@ -275,17 +279,28 @@ if __name__ == '__main__':
 
         out.tab().line('artifacts:')
         out.tab().tab().line('rpms:')
-        existing_branch_pkgs = []
+        existing_branch_pkgs = set()
+
         for pkg in BRANCH_PKGS:
-            branch_pkg = rpm_from_pkgname(rpm_files, pkg, branch.version())
-            if branch_pkg:
-                out.tab().tab().tab().line('- ' + filename_to_nevra(branch_pkg, repodir))
-                existing_branch_pkgs.append(pkg)
+            latest_pkg = latest_rpm_from_pkgname(rpm_files, pkg, branch.version())
+
+            if not latest_pkg:
+                print('WARNING: No package named ' + pkg + ' in version "' + \
+                      branch.version() + '" found in rpmdir')
+
+            for p in all_rpms_from_pkgname(rpm_files, pkg, branch.major):
+                out.tab().tab().tab().line('- ' + filename_to_nevra(p, repodir))
+                existing_branch_pkgs.add(pkg)
+
         for pkg in LATEST_PKGS:
-            latest_pkg = rpm_from_pkgname(rpm_files, pkg)
-            out.tab().tab().tab().line('- ' + filename_to_nevra(latest_pkg, repodir))
+            latest_pkg = latest_rpm_from_pkgname(rpm_files, pkg)
+            if latest_pkg:
+                out.tab().tab().tab().line('- ' + filename_to_nevra(latest_pkg, repodir))
+            else:
+                print('WARNING: No package ' + str(pkg) + ' for branch ' + branch.name + ' found')
+
         if branch.is_dkms():
-            dkms_pkg = rpm_from_pkgname(rpm_files, 'kmod-nvidia-latest-dkms', branch.version())
+            dkms_pkg = latest_rpm_from_pkgname(rpm_files, 'kmod-nvidia-latest-dkms', branch.version())
             if dkms_pkg:
                 out.tab().tab().tab().line('- ' + filename_to_nevra(dkms_pkg, repodir))
         else:
@@ -318,9 +333,13 @@ if __name__ == '__main__':
     # Run modulemd-validator on the output, to catch
     # bugs early. Since modifyrepo doesn't do it...
     if len(outfile) > 0 and os.path.isfile('/usr/bin/modulemd-validator'):
+        print('Running modulemd-validator...', end='')
         process = subprocess.Popen(['/usr/bin/modulemd-validator', outfile], \
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         stdout = process.communicate()[0]
 
         if process.returncode != 0:
+            print('')
             print(stdout)
+        else:
+            print(' OK')
