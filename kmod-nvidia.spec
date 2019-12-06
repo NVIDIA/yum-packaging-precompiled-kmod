@@ -9,6 +9,9 @@
 # Named version, usually just the driver version, or "latest"
 %define _named_version %{driver_branch}
 
+# Distribution name, like .el8 or .el8_1
+%define kmod_dist %{kernel_dist}%{?!kernel_dist:.el8}
+
 %define kmod_vendor		nvidia
 %define kmod_driver_version	%{driver}
 %define kmod_rpm_release	1
@@ -16,7 +19,7 @@
 # there's no --define="kernel x.y.z" passed to rpmbuild
 %define kmod_kernel		%{?kernel}%{?!kernel:3.10.0}
 %define kmod_kernel_release	%{?kernel_release}%{?!kernel_release:862}
-%define kmod_kernel_version	%{kmod_kernel}-%{kmod_kernel_release}%{dist}
+%define kmod_kernel_version	%{kmod_kernel}-%{kmod_kernel_release}%{kmod_dist}
 %define kmod_kbuild_dir		drivers/video/nvidia
 %define kmod_module_path	/lib/modules/%{kmod_kernel_version}.%{_arch}/extra/%{kmod_kbuild_dir}
 %define kmod_share_dir		%{_prefix}/share/nvidia-%{kmod_kernel_version}
@@ -49,7 +52,7 @@ Source2:	public_key.der
 
 Name:		kmod-%{kmod_vendor}-%{kmod_driver_version}-%{kmod_kernel}-%{kmod_kernel_release}
 Version:	%{kmod_driver_version}
-Release:	2%{dist}
+Release:	2%{kmod_dist}
 Summary:	NVIDIA graphics driver
 Group:		System/Kernel
 License:	Nvidia
@@ -294,6 +297,9 @@ install -m 755 ld.gold %{buildroot}/%{_bindir}/ld.gold.nvidia.%{kmod_driver_vers
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
+* Fri Dec 06 2019 Kevin Mittman <kmittman@nvidia.com>
+ - Pass %{kernel_dist} as it may not match the system %{dist}
+
 * Fri Jun 07 2019 Kevin Mittman <kmittman@nvidia.com>
  - Rename package, Change Requires, Remove %ghost
 
