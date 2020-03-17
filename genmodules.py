@@ -1,4 +1,4 @@
-#!/bin/env python2
+#!/bin/env python3
 
 from __future__ import print_function
 from os import listdir
@@ -303,6 +303,8 @@ if __name__ == '__main__':
             dkms_pkg = latest_rpm_from_pkgname(rpm_files, 'kmod-nvidia-latest-dkms', branch.version())
             if dkms_pkg:
                 out.tab().tab().tab().line('- ' + filename_to_nevra(dkms_pkg, repodir))
+            else:
+                print('WARNING: RPM kmod-nvidia-latest-dkms in version ' + branch.version() + ' not found')
         else:
             # All the kmod rpms which belong to this branch
             for rpm in filter(lambda r: kmod_belongs_to(r, branch), kmod_rpms):
