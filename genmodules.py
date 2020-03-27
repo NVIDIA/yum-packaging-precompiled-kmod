@@ -74,22 +74,30 @@ class Writer:
 
 
 class Branch:
-    def __init__(self, name, major, minor):
+    def __init__(self, name, major, minor, micro = None, arch = 'x86_64'):
         self.name = name
         self.major = major
         self.minor = minor
+        self.micro = micro
+        self.arch = arch
 
     def __repr__(self):
-        return 'Branch ' + self.name + '(' + self.major + '.' + self.minor + ')'
+        return 'Branch ({})'.format(self.version())
 
     def __lt__(self, other):
-        if self.major != other.major:
-            return other.major < self.major;
+        if (self.major != other.major):
+            return other.major < self.major
 
-        return other.minor < self.minor;
+        if (self.minor != other.minor):
+            return other.minor < self.minor
+
+        if self.micro:
+            return other.micro < self.micro
+
+        return 0
 
     def version(self):
-        return str(self.major) + '.' + str(self.minor)
+        return '{}.{}{}'.format(self.major, self.minor, '.' + str(self.micro) if self.micro else '')
 
     def is_dkms(self):
         return 'dkms' in self.name
@@ -113,12 +121,27 @@ def version_from_rpm_filename(filename):
     # Get the version
     version = hyphen_parts[len(hyphen_parts) - 2]
     version_parts = version.split('.')
+    micro = version_parts[2] if len(version_parts) == 3 else None
 
-    return (int(version_parts[0]), int(version_parts[1]), int(release))
+    return (version_parts[0], version_parts[1],  micro, release)
 
-def verkey_rpms(rpm_a):
-    version_a = version_from_rpm_filename(rpm_a)
-    return (version_a[0] * 1000 * 1000) + (version_a[1] * 1000) + (version_a[2])
+def arch_from_rpm_filename(filename):
+    # name - version - release.dist.arch.rpm
+
+    # remove extension
+    arch = filename[:filename.rfind('.')]
+    arch = arch[arch.rfind('.') + 1:]
+
+    return arch
+
+def verkey_rpms(rpm):
+    version = version_from_rpm_filename(rpm)
+    major = version[0].rjust(4, '0')
+    minor = version[1].rjust(4, '0')
+    micro = version[2].rjust(4, '0') if version[2] else '0000'
+    rel   = version[3].rjust(4, '0')
+    key = '{}{}{}{}'.format(major, minor, micro, rel)
+    return int(key)
 
 def sort_rpms(rpms):
     return sorted(rpms, reverse = True, key = verkey_rpms)
@@ -228,16 +251,15 @@ if __name__ == '__main__':
         if (pkg_stops != stops + 2):
             continue
 
-        n = pkg[len(BRANCH_PKGS[0]) + 1:]
-        version = n[0:n.index('-')]
-        version_parts = version.split('.')
-        major = version_parts[0]
-        minor = version_parts[1]
+        version = version_from_rpm_filename(pkg)
+        major = version[0]
+        minor = version[1]
+        micro = version[2]
 
-        if len(branches) == 0:
-            branches.append(Branch(major, major, minor))
-        elif len(branches) > 0 and branches[len(branches) - 1].major != major:
-            branches.append(Branch(major, major, minor))
+        n_branches = len(branches)
+        if n_branches == 0 or (n_branches > 0 and branches[n_branches - 1].major != major):
+            arch = arch_from_rpm_filename(pkg)
+            branches.append(Branch(major, major, minor, micro, arch))
 
     branches = sorted(branches)
 
@@ -254,10 +276,10 @@ if __name__ == '__main__':
 
     # Add 'latest' branch with the same version as the highest-versioned other branch
     latest = branches[0]
-    latest_branch = Branch('latest', latest.major, latest.minor)
+    latest_branch = Branch('latest', latest.major, latest.minor, latest.micro, latest.arch)
     branches.insert(0, latest_branch)
     print('Latest Branch: ' + latest_branch.version())
-    latest_dkms_branch = Branch('latest-dkms', latest.major, latest.minor)
+    latest_dkms_branch = Branch('latest-dkms', latest.major, latest.minor, latest.micro, latest.arch)
     branches.insert(1, latest_dkms_branch)
 
     for branch in branches:
@@ -268,7 +290,7 @@ if __name__ == '__main__':
         out.tab().line('name: nvidia-driver')
         out.tab().line('stream: ' + branch.name)
         out.tab().line('version: ' + now.strftime('%Y%m%d%H%M%S'))
-        out.tab().line('arch: x86_64')
+        out.tab().line('arch: ' + branch.arch)
         out.tab().line('summary: Nvidia driver for ' + branch.name + ' branch')
         out.tab().line('description: >-')
         for line in DESCRIPTION:
