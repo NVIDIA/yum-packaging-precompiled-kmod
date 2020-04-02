@@ -329,8 +329,12 @@ if __name__ == '__main__':
                 print('WARNING: RPM kmod-nvidia-latest-dkms in version ' + branch.version() + ' not found')
         else:
             # All the kmod rpms which belong to this branch
-            for rpm in filter(lambda r: kmod_belongs_to(r, branch), kmod_rpms):
-                out.tab().tab().tab().line('- ' + filename_to_nevra(rpm, repodir))
+            kmod_rpms = list(filter(lambda r: kmod_belongs_to(r, branch), kmod_rpms))
+            if not kmod_rpms:
+                print('WARNING: Branch %s in version %s is not a DKMS branch, but no precompiled kmod packages can be found' % (branch.name, branch.version()))
+            else:
+                for rpm in kmod_rpms:
+                    out.tab().tab().tab().line('- ' + filename_to_nevra(rpm, repodir))
 
         out.tab().line('profiles:')
         out.tab().tab().line('default:')
