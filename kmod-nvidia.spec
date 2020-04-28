@@ -10,7 +10,7 @@
 %define _named_version %{driver_branch}
 
 # Distribution name, like .el8 or .el8_1
-%define kmod_dist %{kernel_dist}%{?!kernel_dist:.el8}
+%define kmod_dist %{?kernel_dist}%{?!kernel_dist:%{dist}}
 
 %define kmod_vendor		nvidia
 %define kmod_driver_version	%{driver}
