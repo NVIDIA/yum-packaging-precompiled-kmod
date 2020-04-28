@@ -128,8 +128,8 @@ rm nvidia-modeset.o
 
 # Link our own nvidia.o and nvidia-modeset.o from the -interface.o and the -kernel.o.
 # This is necessary because we just stripped the input .o files
-%{_ld} -r -m elf_x86_64 -o nvidia.o nvidia/nv-interface.o nvidia/nv-kernel.o
-%{_ld} -r -m elf_x86_64 -o nvidia-modeset.o nvidia-modeset/nv-modeset-interface.o nvidia-modeset/nv-modeset-kernel.o
+%{_ld} -r -o nvidia.o nvidia/nv-interface.o nvidia/nv-kernel.o
+%{_ld} -r -o nvidia-modeset.o nvidia-modeset/nv-modeset-interface.o nvidia-modeset/nv-modeset-kernel.o
 
 
 # The build above has already linked a module.ko, but we do it again here
@@ -140,7 +140,7 @@ for m in %{kmod_modules}; do
 	%{strip} ${m}.o --keep-symbol=init_module --keep-symbol=cleanup_module
 	rm ${m}.ko
 
-	%{_ld} -r -m elf_x86_64 \
+	%{_ld} -r \
 		-z max-page-size=0x200000 -T %{kmod_kernel_source}/scripts/module-common.lds \
 		--build-id -r \
 		-o ${m}.ko \
@@ -181,31 +181,29 @@ mkdir -p %{kmod_module_path}
 chmod +x %{postld}
 
 # link nvidia.o
-%{postld} -m elf_x86_64 \
-	-z max-page-size=0x200000 -r \
+%{postld} -z max-page-size=0x200000 -r \
 	-o nvidia.o \
 	nvidia/nv-interface.o \
 	nvidia/nv-kernel.o
 
 %{strip} nvidia.o
-%{postld} -r -m elf_x86_64 -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia.ko nvidia.o nvidia.mod.o
+%{postld} -r -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia.ko nvidia.o nvidia.mod.o
 rm nvidia.o
 
-%{postld} -r -m elf_x86_64 -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia-uvm.ko nvidia-uvm/nvidia-uvm.o nvidia-uvm.mod.o
+%{postld} -r -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia-uvm.ko nvidia-uvm/nvidia-uvm.o nvidia-uvm.mod.o
 
 # nvidia-modeset.o
-%{postld} -m elf_x86_64 \
-	-z max-page-size=0x200000 -r \
+%{postld} -z max-page-size=0x200000 -r \
 	-o nvidia-modeset.o \
 	nvidia-modeset/nv-modeset-interface.o \
 	nvidia-modeset/nv-modeset-kernel.o
 
 %{strip} nvidia-modeset.o
-%{postld} -r -m elf_x86_64 -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia-modeset.ko nvidia-modeset.o nvidia-modeset.mod.o
+%{postld} -r -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia-modeset.ko nvidia-modeset.o nvidia-modeset.mod.o
 rm nvidia-modeset.o
 
 
-%{postld} -r -m elf_x86_64 -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia-drm.ko nvidia-drm/nvidia-drm.o nvidia-drm.mod.o
+%{postld} -r -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia-drm.ko nvidia-drm/nvidia-drm.o nvidia-drm.mod.o
 
 
 
