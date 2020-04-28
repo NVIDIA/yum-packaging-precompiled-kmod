@@ -14,7 +14,6 @@
 
 %define kmod_vendor		nvidia
 %define kmod_driver_version	%{driver}
-%define kmod_rpm_release	1
 # We use some default kernel (here the current RHEL 7.5 one) if
 # there's no --define="kernel x.y.z" passed to rpmbuild
 %define kmod_kernel		%{?kernel}%{?!kernel:3.10.0}
