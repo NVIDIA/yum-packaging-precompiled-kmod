@@ -74,6 +74,7 @@ Provides:		kernel-modules = %kmod_kernel_version.%{_target_cpu}
 # DKMS kernel module package both provide this and the driver package only needs
 # one of them to satisfy the dependency.
 Provides:		nvidia-kmod = %{?epoch:%{epoch}:}%{kmod_driver_version}
+Requires(post):		/usr/bin/strip
 
 %if 0%{?rhel} >= 8 || 0%{?fedora}
 Supplements: (nvidia-driver = %{epoch}:%{kmod_driver_version} and kernel = %{kmod_kernel_version})
