@@ -51,7 +51,7 @@ Source2:	public_key.der
 
 Name:		kmod-%{kmod_vendor}-%{kmod_driver_version}-%{kmod_kernel}-%{kmod_kernel_release}
 Version:	%{kmod_driver_version}
-Release:	2%{kmod_dist}
+Release:	3%{kmod_dist}
 Summary:	NVIDIA graphics driver
 Group:		System/Kernel
 License:	Nvidia
@@ -295,6 +295,13 @@ install -m 755 ld.gold %{buildroot}/%{_bindir}/ld.gold.nvidia.%{kmod_driver_vers
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
+* Wed Apr 28 2020 Timm Bäder <tbaeder@redhat.com>
+ - Removed unused kmod_rpm_release variable
+ - Fix kernel_dist fallback to %%{dist}
+ - Remove -m elf_x86_64 argument from linker invocations
+ - Add /usr/bin/strip requirement for %%post scriptlet
+ - Conflict with kmod-nvidia-latest-dkms, not dkms-nvidia
+
 * Fri Dec 06 2019 Kevin Mittman <kmittman@nvidia.com>
  - Pass %{kernel_dist} as it may not match the system %{dist}
 
