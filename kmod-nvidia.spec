@@ -39,7 +39,7 @@
 %define _ld %{_bindir}/ld.gold
 # postld is the ld version we ship ourselves, install and then use
 # in %post to link the final kernel module
-%define postld %{_bindir}/ld.gold.nvidia.%{kmod_driver_version}
+%define postld %{_bindir}/ld.gold.nvidia.%{kmod_driver_version}.%{kmod_kernel_version}
 
 %define debug_package %{nil}
 %define sbindir %( if [ -d "/sbin" -a \! -h "/sbin" ]; then echo "/sbin"; else echo %{_sbindir}; fi )
@@ -258,8 +258,7 @@ install nvidia-drm.o %{buildroot}/%{kmod_o_dir}/nvidia-drm/
 # misc
 install -m 644 -D module-common.lds %{buildroot}/%{kmod_share_dir}/
 
-install -m 755 ld.gold %{buildroot}/%{_bindir}/ld.gold.nvidia.%{kmod_driver_version}
-
+install -m 755 ld.gold %{buildroot}/%{postld}
 
 
 %files
@@ -287,7 +286,7 @@ install -m 755 ld.gold %{buildroot}/%{_bindir}/ld.gold.nvidia.%{kmod_driver_vers
 %{kmod_o_dir}/nvidia-drm.sig
 %{kmod_o_dir}/nvidia-drm/nvidia-drm.o
 
-%{_bindir}/ld.gold.nvidia.%{kmod_driver_version}
+%{postld}
 
 %{kmod_share_dir}/module-common.lds
 
@@ -295,6 +294,9 @@ install -m 755 ld.gold %{buildroot}/%{_bindir}/ld.gold.nvidia.%{kmod_driver_vers
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
+* Thu Apr 30 2020 Kevin Mittman <kmittman@nvidia.com>
+ - Unique ld.gold filename
+
 * Wed Apr 28 2020 Timm Bäder <tbaeder@redhat.com>
  - Removed unused kmod_rpm_release variable
  - Fix kernel_dist fallback to %%{dist}
