@@ -84,7 +84,7 @@ Supplements: (nvidia-driver = %{epoch}:%{kmod_driver_version} and kernel = %{kmo
 
 # This works though and will automatically remove the kmod package when removing
 # the kernel package.
-Requires: kernel = %{kmod_kernel_version}
+Requires: (kernel = %{kmod_kernel_version} if kernel)
 Conflicts: kmod-nvidia-latest-dkms
 
 %endif # fedora/rhel8
