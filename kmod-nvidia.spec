@@ -264,31 +264,15 @@ install -m 755 ld.gold %{buildroot}/%{postld}
 %files
 %defattr(644,root,root,755)
 
-# nvidia.o
-%{kmod_o_dir}/nvidia.mod.o
-%{kmod_o_dir}/nvidia.sig
-%{kmod_o_dir}/nvidia/nv-interface.o
-%{kmod_o_dir}/nvidia/nv-kernel.o
-
-# nvidia-uvm.o
-%{kmod_o_dir}/nvidia-uvm.mod.o
-%{kmod_o_dir}/nvidia-uvm.sig
-%{kmod_o_dir}/nvidia-uvm/nvidia-uvm.o
-
-# nvidia-modeset.o
-%{kmod_o_dir}/nvidia-modeset.mod.o
-%{kmod_o_dir}/nvidia-modeset.sig
-%{kmod_o_dir}/nvidia-modeset/nv-modeset-interface.o
-%{kmod_o_dir}/nvidia-modeset/nv-modeset-kernel.o
-
-# nvidia-drm.o
-%{kmod_o_dir}/nvidia-drm.mod.o
-%{kmod_o_dir}/nvidia-drm.sig
-%{kmod_o_dir}/nvidia-drm/nvidia-drm.o
-
+%{kmod_o_dir}
+%{kmod_share_dir}
 %{postld}
 
-%{kmod_share_dir}/module-common.lds
+%ghost %{kmod_module_path}
+%ghost %{kmod_module_path}/nvidia.ko
+%ghost %{kmod_module_path}/nvidia-uvm.ko
+%ghost %{kmod_module_path}/nvidia-drm.ko
+%ghost %{kmod_module_path}/nvidia-modeset.ko
 
 %clean
 rm -rf $RPM_BUILD_ROOT
