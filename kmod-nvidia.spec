@@ -51,7 +51,7 @@ Source2:	public_key.der
 
 Name:		kmod-%{kmod_vendor}-%{kmod_driver_version}-%{kmod_kernel}-%{kmod_kernel_release}
 Version:	%{kmod_driver_version}
-Release:	3%{kmod_dist}
+Release:	4%{kmod_dist}
 Summary:	NVIDIA graphics driver
 Group:		System/Kernel
 License:	Nvidia
@@ -278,6 +278,10 @@ install -m 755 ld.gold %{buildroot}/%{postld}
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
+* Thu May 07 2020 Timm Bäder <tbaeder@redhat.com>
+ - List generated files as %%ghost files
+ - Only require the kernel if any kernel is installed
+
 * Thu Apr 30 2020 Kevin Mittman <kmittman@nvidia.com>
  - Unique ld.gold filename
 
