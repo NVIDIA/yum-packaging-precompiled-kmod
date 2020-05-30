@@ -260,6 +260,7 @@ if __name__ == '__main__':
         if n_branches == 0 or (n_branches > 0 and branches[n_branches - 1].major != major):
             arch = arch_from_rpm_filename(pkg)
             branches.append(Branch(major, major, minor, micro, arch))
+            branches.append(Branch(major + "-dkms", major, minor, micro, arch))
 
     branches = sorted(branches)
 
@@ -340,7 +341,7 @@ if __name__ == '__main__':
         out.tab().tab().line('default:')
         out.tab().tab().tab().line('description: Default installation')
         out.tab().tab().tab().line('rpms:')
-        for pkg in existing_branch_pkgs:
+        for pkg in sorted(existing_branch_pkgs):
             out.tab().tab().tab().tab().line('- ' + pkg)
         if branch.is_dkms():
             out.tab().tab().tab().tab().line('- kmod-nvidia-latest-dkms')
