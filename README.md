@@ -7,6 +7,8 @@
 
 Packaging templates for `yum` and `dnf` based Linux distros to build NVIDIA driver precompiled kernel modules.
 
+The `main` branch contains this README and a sample build script. The `.spec` and `genmodules.py` files can be found in the appropriate [rhel7](tree/rhel7) and [rhel8](tree/rhel8) branches.
+
 ## Table of Contents
 
 - [Overview](#Overview)
@@ -59,12 +61,21 @@ This repo contains the `.spec` file used to build the following **RPM** packages
 
 These packages can be used in place of their equivalent [DKMS](https://en.wikipedia.org/wiki/Dynamic_Kernel_Module_Support) packages:
 
-* **RHEL8** stream: `latest-dkms` and **RHEL7** flavor: `latest-dkms`
+* **RHEL8** streams: `latest-dkms` and `XXX-dkms`
   ```shell
   kmod-nvidia-latest-dkms-${driver}-${rel}.${dist}.${arch}.rpm
   > ex: kmod-nvidia-latest-dkms-440.33.01-1.el8.x86_64.rpm
+  ```
+
+* **RHEL7** flavor: `latest-dkms`
+  ```shell
+  kmod-nvidia-latest-dkms-${driver}-${rel}.${dist}.${arch}.rpm
   > ex: kmod-nvidia-latest-dkms-440.33.01-1.el7.x86_64.rpm
   ```
+
+The `latest` and `latest-dkms` streams/flavors always update to the highest versioned driver, while the `XXX` and `XXX-dkms` streams/flavors lock driver updates to the specified driver branch.
+
+> *note:* `XXX-dkms` is not available for RHEL7
 
 
 ## Prerequisites
@@ -113,8 +124,8 @@ yum install dkms
 
 ![Demo](https://developer.download.nvidia.com/compute/github-demos/yum-packaging-precompiled-kmod/demo.gif)
 
-[![webm](https://img.shields.io/badge/Play%20Video-webm-purple)](http://developer.download.nvidia.com/compute/github-demos/yum-packaging-precompiled-kmod/demo.webm)
 [![asciinema](https://img.shields.io/badge/Play%20Video-asciinema-red)](http://developer.download.nvidia.com/compute/github-demos/yum-packaging-precompiled-kmod/demo-ascii/)
+[![webm](https://img.shields.io/badge/Play%20Video-webm-purple)](http://developer.download.nvidia.com/compute/github-demos/yum-packaging-precompiled-kmod/demo.webm)
 [![svg](https://img.shields.io/badge/Play%20Video-svg-blue)](http://developer.download.nvidia.com/compute/github-demos/yum-packaging-precompiled-kmod/demo.svg)
 
 
@@ -142,8 +153,8 @@ git checkout remotes/origin/master -- build.sh
 ```shell
 mkdir nvidia-kmod-440.33.01-x86_64
 sh NVIDIA-Linux-x86_64-440.33.01.run --extract-only --target .
-mv kernel nvidia-kmod-440.33.01-x86-64/
-tar -cJf nvidia-kmod-440.33.01-x86-64.tar.xz nvidia-kmod-440.33.01-x86-64
+mv kernel nvidia-kmod-440.33.01-x86_64/
+tar -cJf nvidia-kmod-440.33.01-x86_64.tar.xz nvidia-kmod-440.33.01-x86_64
 ```
 
 ### X.509 Certificate
@@ -308,7 +319,7 @@ sudo cp custom.repo /etc/yum.repos.d/
 
 **Clean `yum`/`dnf` cache**
 ```shell
-sudo yum clean all
+yum clean all
 ```
 
 
@@ -316,11 +327,15 @@ sudo yum clean all
 
 > *note:* `XXX` is the first `.` delimited field in the driver version, ex: `440` in `440.33.01`
 
-* **RHEL8** streams: `latest`, `XXX`, `latest-dkms`
+* **RHEL8** streams: `latest`, `XXX`, `latest-dkms`, `XXX-dkms`
   ```shell
   dnf module install nvidia-driver:${stream}
   > ex: dnf module install nvidia-driver:latest
   ```
+  To [switch streams](https://docs.fedoraproject.org/en-US/modularity/using-modules-switching-streams/), first uninstall and clear the current stream
+  ```shell
+  dnf remove nvidia-driver
+  dnf module reset nvidia-driver
 
 * **RHEL7** flavors: `latest`, `branch-XXX`, `latest-dkms`
   ```shell
