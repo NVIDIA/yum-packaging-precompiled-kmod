@@ -7,7 +7,7 @@
 
 Packaging templates for `yum` and `dnf` based Linux distros to build NVIDIA driver precompiled kernel modules.
 
-The `main` branch contains this README and a sample build script. The `.spec` and `genmodules.py` files can be found in the appropriate [rhel7](tree/rhel7) and [rhel8](tree/rhel8) branches.
+The `main` branch contains this README and a sample build script. The `.spec` and `genmodules.py` files can be found in the appropriate [rhel7](../../tree/rhel7) and [rhel8](../../tree/rhel8) branches.
 
 ## Table of Contents
 
