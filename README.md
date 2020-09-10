@@ -235,7 +235,10 @@ done
 
 ### Other NVIDIA driver packages
 
-> *note:* `git` repos with remaining `.spec` files **coming soon!**
+- _dnf-plugin-nvidia_ & _yum-plugin-nvidia_
+  * [https://github.com/NVIDIA/yum-packaging-nvidia-plugin](https://github.com/NVIDIA/yum-packaging-nvidia-plugin)
+
+> *note:* more `git` repos with various `.spec` files **coming soon!**
 
 **RHEL8**
 
