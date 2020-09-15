@@ -45,6 +45,7 @@ BRANCH_PKGS = [
   'nvidia-modprobe',
   'nvidia-settings',
   'nvidia-libXNVCtrl',
+  'nvidia-libXNVCtrl-devel',
   'nvidia-xconfig',
   'nvidia-kmod-common',
 
