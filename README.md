@@ -7,7 +7,7 @@
 
 Packaging templates for `yum` and `dnf` based Linux distros to build NVIDIA driver precompiled kernel modules.
 
-The `main` branch contains this README and a sample build script. The `.spec` and `genmodules.py` files can be found in the appropriate [rhel7](../../tree/rhel7) and [rhel8](../../tree/rhel8) branches.
+The `main` branch contains this README and a sample build script. The `.spec` and `genmodules.py` files can be found in the appropriate [rhel7](../../tree/rhel7), [rhel8](../../tree/rhel8), and [fedora](../../tree/fedora) branches.
 
 ## Table of Contents
 
@@ -40,10 +40,11 @@ This repo contains the `.spec` file used to build the following **RPM** packages
 
 > *note:* `XXX` is the first `.` delimited field in the driver version, ex: `440` in `440.33.01`
 
-* **RHEL8** streams: `latest` and `XXX`
+* **RHEL8** or **Fedora** streams: `latest` and `XXX`
   ```shell
   kmod-nvidia-${driver}-${kernel}-${kernel}-${rel}.${dist}.${arch}.rpm
   > ex: kmod-nvidia-440.33.01-4.18.0-147.5.1-440.33.01-2.el8_1.x86_64.rpm
+  > ex: kmod-nvidia-450.51.06-5.6.11-300-450.51.06-4.fc32.x86_64.rpm
   ```
   *note:* requires `genmodules.py` to generate `modules.yaml` for [modularity streams](https://docs.pagure.org/modularity/).
 
@@ -61,7 +62,7 @@ This repo contains the `.spec` file used to build the following **RPM** packages
 
 These packages can be used in place of their equivalent [DKMS](https://en.wikipedia.org/wiki/Dynamic_Kernel_Module_Support) packages:
 
-* **RHEL8** streams: `latest-dkms` and `XXX-dkms`
+* **RHEL8** or **Fedora** streams: `latest-dkms` and `XXX-dkms`
   ```shell
   kmod-nvidia-latest-dkms-${driver}-${rel}.${dist}.${arch}.rpm
   > ex: kmod-nvidia-latest-dkms-440.33.01-1.el8.x86_64.rpm
@@ -82,7 +83,7 @@ The `latest` and `latest-dkms` streams/flavors always update to the highest vers
 
 ### Clone this git repository:
 
-Supported branches: `rhel7` & `rhel8`
+Supported branches: `rhel7`, `rhel8` & `fedora`
 
 ```shell
 git clone -b ${branch} https://github.com/NVIDIA/yum-packaging-precompiled-kmod
@@ -99,7 +100,16 @@ git clone -b ${branch} https://github.com/NVIDIA/yum-packaging-precompiled-kmod
 
   *ex:* [http://download.nvidia.com/XFree86/Linux-x86_64/440.64/NVIDIA-Linux-x86_64-440.64.run](http://download.nvidia.com/XFree86/Linux-x86_64/440.64/NVIDIA-Linux-x86_64-440.64.run)
 
-* **CUDA** runfiles: `cuda_${toolkit}_${driver}_linux.run` are not compatible
+* **CUDA** runfiles: `cuda_${toolkit}_${driver}_linux.run` are not compatible.
+
+  However a NVIDIA driver runfile can be extracted intact from a CUDA runfile:
+  ```shell
+  sh cuda_${toolkit}_${driver}_linux.run --tar mxvf
+  > ex: sh cuda_11.1.0_455.23.05_linux.run --tar mxvf
+
+  ls builds/NVIDIA-Linux-${arch}-${driver}.run
+  > ex: ls builds/NVIDIA-Linux-x86_64-455.23.05.run
+  ```
 
 ### Install build dependencies
 > *note:* these are only needed for building not installation
@@ -131,18 +141,18 @@ yum install dkms
 
 ## Building with script
 
-### Fetch script from `master` branch
+### Fetch script from `main` branch
 
 ```shell
 cd yum-packaging-precompiled-kmod
-git checkout remotes/origin/master -- build.sh
+git checkout remotes/origin/main -- build.sh
 ```
 
 ### Usage
 
 ```shell
-./build.sh path/to/*.run
-> ex: time ./build.sh ~/Downloads/NVIDIA-Linux-x86_64-440.33.01.run
+./build.sh path/to/*.run ${distro}
+> ex: time ./build.sh ~/Downloads/NVIDIA-Linux-x86_64-440.33.01.run rhel8
 ```
 
 
@@ -170,8 +180,9 @@ openssl req -x509 -new -nodes -utf8 -sha256 -days 36500 -batch \
   -keyout private_key.priv
 ```
 
-
 ### Compilation and Packaging
+
+> note: Fedora users may need to `export IGNORE_CC_MISMATCH=1`
 
 ```shell
 mkdir BUILD BUILDROOT RPMS SRPMS SOURCES SPECS
@@ -240,7 +251,7 @@ done
 
 > *note:* more `git` repos with various `.spec` files **coming soon!**
 
-**RHEL8**
+**RHEL8** or **Fedora**
 
 Copy relevant packages from the [CUDA repository](http://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/)
 ```shell
@@ -292,7 +303,7 @@ cp RPMS/*/kmod-nvidia*.rpm my-first-repo/
 cp ~/Downloads/*.rpm my-first-repo/
 ```
 
-**RHEL8**
+**RHEL8** or **Fedora**
 ```shell
 createrepo_c -v --database my-first-repo/
 python3 ./genmodules.py my-first-repo/ modules.yaml
@@ -330,7 +341,7 @@ yum clean all
 
 > *note:* `XXX` is the first `.` delimited field in the driver version, ex: `440` in `440.33.01`
 
-* **RHEL8** streams: `latest`, `XXX`, `latest-dkms`, `XXX-dkms`
+* **RHEL8** or **Fedora** streams: `latest`, `XXX`, `latest-dkms`, `XXX-dkms`
   ```shell
   dnf module install nvidia-driver:${stream}
   > ex: dnf module install nvidia-driver:latest
