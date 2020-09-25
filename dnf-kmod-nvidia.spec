@@ -51,7 +51,7 @@ Source2:	public_key.der
 
 Name:		kmod-%{kmod_vendor}-%{kmod_driver_version}-%{kmod_kernel}-%{kmod_kernel_release}
 Version:	%{kmod_driver_version}
-Release:	4%{kmod_dist}
+Release:	2%{kmod_dist}
 Summary:	NVIDIA graphics driver
 Group:		System/Kernel
 License:	Nvidia
