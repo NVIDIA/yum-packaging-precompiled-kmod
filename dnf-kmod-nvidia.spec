@@ -80,14 +80,13 @@ Supplements: (nvidia-driver = %{epoch}:%{kmod_driver_version} and kernel = %{kmo
 # We cannot require the version of the driver in the kmod package since
 # dnf won't remove the kmod package automatically when enabling a different
 # module stream. This will cause the transaction to fail.
-#Requires:	nvidia-driver = %{epoch}:%{version}
+#Requires:	nvidia-driver = %%{epoch}:%%{version}
 
 # This works though and will automatically remove the kmod package when removing
 # the kernel package.
 Requires: (kernel = %{kmod_kernel_version} if kernel)
 Conflicts: kmod-nvidia-latest-dkms
-
-%endif # fedora/rhel8
+%endif
 
 %description
 The NVidia %{kmod_driver_version} display driver kernel module for kernel %{kmod_kernel_version}
@@ -285,7 +284,7 @@ rm -rf $RPM_BUILD_ROOT
 * Thu Apr 30 2020 Kevin Mittman <kmittman@nvidia.com>
  - Unique ld.gold filename
 
-* Wed Apr 28 2020 Timm Bäder <tbaeder@redhat.com>
+* Tue Apr 28 2020 Timm Bäder <tbaeder@redhat.com>
  - Removed unused kmod_rpm_release variable
  - Fix kernel_dist fallback to %%{dist}
  - Remove -m elf_x86_64 argument from linker invocations
