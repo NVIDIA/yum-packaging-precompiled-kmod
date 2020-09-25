@@ -5,6 +5,7 @@ get_gpgkey() { gpgKey=$(gpg --list-secret-keys --with-colons | grep "^sec" | sor
 
 # Inputs
 runfile=$(readlink -e "$1")
+distro="$2"
 
 # X.509 defaults
 userName=$USER
@@ -38,7 +39,7 @@ dist=$(uname -r | awk -F '-' '{print $2}' | sed -r -e 's|\.[a-z]{2}[0-9]+| &|' -
 
 # CUDA defaults
 baseURL="http://developer.download.nvidia.com/compute/cuda/repos"
-distro="rhel8"
+[[ $distro ]] || distro="rhel8"
 downloads=$topdir/repo
 
 # Repo defaults
@@ -151,6 +152,11 @@ kmod_rpm()
     cp -v -- *.spec "$topdir/SPECS/"
     cd "$topdir" || err "Unable to cd into $topdir"
 
+    if [[ ${distro,,} =~ "fedora" ]]; then
+        echo ":: export IGNORE_CC_MISMATCH=1"
+        export IGNORE_CC_MISMATCH=1
+    fi
+
     kmd rpmbuild \
         --define "'%_topdir $(pwd)'" \
         --define "'debug_package %{nil}'" \
@@ -192,6 +198,10 @@ copy_rpms()
 
     plugin=$(grep -E "plugin-nvidia" primary.xml | grep "<location" | awk -F '"' '{print $2}' | sort -rV | awk NR==1)
     driverFiles=$(grep -E "${version}-" primary.xml | grep "<location" | awk -F '"' '{print $2}')
+
+    if [[ -z "$driverFiles" ]]; then
+        err "Unable to locate $version driver packages in repository for ${distro}/${arch}"
+    fi
 
     if [[ $distro == "rhel7" ]]; then
         plugin=$(grep -E "plugin-nvidia" primary.xml | grep "<location" | awk -F '"' '{print $2}' | sort -rV | awk NR==1)
