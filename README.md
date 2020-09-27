@@ -31,6 +31,9 @@ The `main` branch contains this README and a sample build script. The `.spec` an
   * [Generate metadata](#Generate-metadata)
   * [Enable local repo](#Enable-local-repo)
 - [Installing packages](#Installing-packages)
+- [Modularity Profiles](#Modularity-Profiles)
+- [Related](#Related)
+  * [NVIDIA plugin](#NVIDIA-plugin)
 - [Contributing](#Contributing)
 
 
@@ -149,6 +152,7 @@ git checkout remotes/origin/main -- build.sh
 ```
 
 ### Usage
+> *note*: distro: `fedora32`, `rhel7`, `rhel8`
 
 ```shell
 ./build.sh path/to/*.run ${distro}
@@ -245,11 +249,6 @@ done
 ## RPM Repository
 
 ### Other NVIDIA driver packages
-
-- _dnf-plugin-nvidia_ & _yum-plugin-nvidia_
-  * [https://github.com/NVIDIA/yum-packaging-nvidia-plugin](https://github.com/NVIDIA/yum-packaging-nvidia-plugin)
-
-> *note:* more `git` repos with various `.spec` files **coming soon!**
 
 **RHEL8** or **Fedora**
 
@@ -360,6 +359,46 @@ yum clean all
   ```shell
   yum install cuda-drivers
   ```
+
+
+## Modularity Profiles
+
+
+* **RHEL8** or **Fedora** profiles: `default`, `ks`, `fm`
+  ```shell
+  dnf module install nvidia-driver:${stream}/${profile}
+  > ex: dnf module install nvidia-driver:450/fm
+  ```
+
+  The default profile (`default`) installs all of the driver packages for specified stream using [transitive closure](https://en.wikipedia.org/wiki/Transitive_closure)
+  ```shell
+  dnf module install nvidia-driver:${stream}/default
+  ```
+  > *note*: do not need to specify `default` profile
+
+  The [kickstart](https://en.wikipedia.org/wiki/Kickstart_(Linux)) profile (`ks`) is used for unattended [Anaconda](https://fedoraproject.org/wiki/Anaconda) installs of `CentOS`, `Fedora`, & `RHEL` Linux OSes via a configuration file. This profile does not install the _cuda-drivers_ metapackage, which otherwise would attempt to uninstall any existing NVIDIA driver runfiles via a `%pretrans` hook
+  ```shell
+  %packages
+  @^Minimal Install
+  @nvidia-driver:${stream}/ks
+  %end
+  ```
+  > *note*: any package warning is fatal to a kickstart installation
+
+  The NvSwitch profile (`fm`) installs all of the driver packages, as well as Fabric Manager and NCSQ
+  ```shell
+  dnf module install nvidia-driver:${stream}/fm
+  ```
+  > *note*: this is intended for hardware containing NvSwitch such as DGX systems
+
+## Related
+
+### NVIDIA plugin
+
+- _dnf-plugin-nvidia_ & _yum-plugin-nvidia_
+  * [https://github.com/NVIDIA/yum-packaging-nvidia-plugin](https://github.com/NVIDIA/yum-packaging-nvidia-plugin)
+
+> *note:* more `git` repos with various `.spec` files **coming soon!**
 
 
 ## Contributing
