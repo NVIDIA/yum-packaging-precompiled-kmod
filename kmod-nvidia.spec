@@ -211,10 +211,10 @@ for m in %{kmod_modules}; do
 	cat %{kmod_o_dir}/${m}.sig >> %{kmod_module_path}/${m}.ko
 done
 
-depmod -a
+depmod -a -w %{kmod_kernel_version}
 
 %postun
-depmod -a
+depmod -a -w %{kmod_kernel_version}
 
 
 %install
@@ -277,6 +277,9 @@ install -m 755 ld.gold %{buildroot}/%{postld}
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
+* Fri Oct 09 2020 Kevin Mittman <kmittman@nvidia.com>
+ - Run depmod for target kernel version, not running kernel
+
 * Thu May 07 2020 Timm Bäder <tbaeder@redhat.com>
  - List generated files as %%ghost files
  - Only require the kernel if any kernel is installed
