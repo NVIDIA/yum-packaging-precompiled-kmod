@@ -32,6 +32,9 @@ The `main` branch contains this README and a sample build script. The `.spec` an
   * [Enable local repo](#Enable-local-repo)
 - [Installing packages](#Installing-packages)
 - [Modularity Profiles](#Modularity-Profiles)
+- [Presentations](#Presentations)
+  * [GPU Technology Conference](#GPU-Technology-Conference)
+  * [Red Hat Summit](#Red-Hat-Summit)
 - [Related](#Related)
   * [NVIDIA plugin](#NVIDIA-plugin)
 - [Contributing](#Contributing)
@@ -390,6 +393,23 @@ yum clean all
   dnf module install nvidia-driver:${stream}/fm
   ```
   > *note*: this is intended for hardware containing NvSwitch such as DGX systems
+
+
+## Presentations
+
+### GPU Technology Conference
+
+- [Precompiled Kernel Modules: Packaging & Deployment on RHEL8 with Modularity Streams](https://www.nvidia.com/en-us/gtc/session-catalog/?search=A21604&tab.catalogtabfields=1600209910618002Tlxt)
+  - Fall 2020
+  - [video](https://developer.download.nvidia.com/presentations/2020/gtc-fall/Precompiled_Kernel_Modules_Packaging_and_Deployment_on_RHEL8_with_Modularity_Streams.mp4) (MP4)
+  - [slides](https://developer.download.nvidia.com/presentations/2020/gtc-fall/Precompiled_Kernel_Modules_Packaging_and_Deployment_on_RHEL8_with_Modularity_Streams.pdf) (PDF)
+
+### Red Hat Summit
+
+- [Simplifying NVIDIA GPU Driver Deployment on Red Hat Enterprise Linux](https://summit.redhat.com/conference/sessions/details/5530dede-518d-46e3-8038-ca62c242ea67)
+  - Spring → Summer 2020
+  - [video](https://developer.download.nvidia.com/presentations/2020/rhsummit/Simplifying_NVIDIA_GPU_Driver_Deployment_on_RHEL.mp4) (MP4)
+  - [slides](https://developer.download.nvidia.com/presentations/2020/rhsummit/Simplifying_NVIDIA_GPU_Driver_Deployment_on_RHEL.pdf) (PDF)
 
 ## Related
 
