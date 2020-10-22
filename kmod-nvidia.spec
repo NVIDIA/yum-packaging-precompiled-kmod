@@ -211,10 +211,10 @@ for m in %{kmod_modules}; do
 	cat %{kmod_o_dir}/${m}.sig >> %{kmod_module_path}/${m}.ko
 done
 
-depmod -a -w %{kmod_kernel_version}
+depmod -a -w %{kmod_kernel_version}.%{_arch}
 
 %postun
-depmod -a -w %{kmod_kernel_version}
+depmod -a -w %{kmod_kernel_version}.%{_arch}
 
 
 %install
@@ -277,6 +277,9 @@ install -m 755 ld.gold %{buildroot}/%{postld}
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
+* Wed Oct 21 2020 Kevin Mittman <kmittman@nvidia.com>
+ - Include architecture in depmod command
+
 * Fri Oct 09 2020 Kevin Mittman <kmittman@nvidia.com>
  - Run depmod for target kernel version, not running kernel
 
