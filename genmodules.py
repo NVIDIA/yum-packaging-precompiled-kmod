@@ -75,7 +75,7 @@ class Writer:
 
 
 class Branch:
-    def __init__(self, name, major, minor, micro = None, arch = 'x86_64'):
+    def __init__(self, name, major, minor, micro = None, arch = "noarch"):
         self.name = name
         self.major = major
         self.minor = minor
@@ -347,19 +347,20 @@ if __name__ == '__main__':
         if branch.is_dkms():
             out.tab().tab().tab().tab().line('- kmod-nvidia-latest-dkms')
 
-        out.tab().tab().line('fm:')
-        out.tab().tab().tab().line('description: FabricManager installation')
-        out.tab().tab().tab().line('rpms:')
-        for pkg in sorted(existing_branch_pkgs):
-            out.tab().tab().tab().tab().line('- ' + pkg)
-        if branch.is_dkms():
-            out.tab().tab().tab().tab().line('- kmod-nvidia-latest-dkms')
-        if "latest" in branch.name:
-            out.tab().tab().tab().tab().line('- ' + 'nvidia-fabricmanager-' + latest.major)
-            out.tab().tab().tab().tab().line('- ' + 'libnvidia-nscq-' + latest.major)
-        else:
-            out.tab().tab().tab().tab().line('- ' + 'nvidia-fabricmanager-' + branch.major)
-            out.tab().tab().tab().tab().line('- ' + 'libnvidia-nscq-' + branch.major)
+        if branch.arch == "x86_64":
+            out.tab().tab().line('fm:')
+            out.tab().tab().tab().line('description: FabricManager installation')
+            out.tab().tab().tab().line('rpms:')
+            for pkg in sorted(existing_branch_pkgs):
+                out.tab().tab().tab().tab().line('- ' + pkg)
+            if branch.is_dkms():
+                out.tab().tab().tab().tab().line('- kmod-nvidia-latest-dkms')
+            if "latest" in branch.name:
+                out.tab().tab().tab().tab().line('- ' + 'nvidia-fabricmanager-' + latest.major)
+                out.tab().tab().tab().tab().line('- ' + 'libnvidia-nscq-' + latest.major)
+            else:
+                out.tab().tab().tab().tab().line('- ' + 'nvidia-fabricmanager-' + branch.major)
+                out.tab().tab().tab().tab().line('- ' + 'libnvidia-nscq-' + branch.major)
 
         out.tab().tab().line('ks:')
         out.tab().tab().tab().line('description: Installation via kickstart')
