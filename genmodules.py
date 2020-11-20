@@ -8,6 +8,7 @@ import os.path
 import sys
 import glob
 import subprocess
+import hashlib
 
 # https://github.com/fedora-modularity/libmodulemd/blob/master/spec.v2.yaml
 
@@ -103,6 +104,13 @@ class Branch:
     def is_dkms(self):
         return 'dkms' in self.name
 
+def get_stream_hash(name, stream, version, distro):
+    uniq_str = name + stream + version + distro
+    hash_str = hashlib.md5(uniq_str.encode('utf-8')).hexdigest()[:12]
+    print('context: ' + hash_str + ' = ', name, stream, version, distro)
+
+    return hash_str
+
 def version_from_rpm_filename(filename):
     # name - version - release.dist.arch.rpm
     hyphen_parts = filename.split('-')
@@ -134,6 +142,12 @@ def arch_from_rpm_filename(filename):
     arch = arch[arch.rfind('.') + 1:]
 
     return arch
+
+def distro_from_rpm_filename(filename):
+    # name - version - release.dist.arch.rpm
+    distro = filename.split('.')[-3]
+
+    return distro
 
 def verkey_rpms(rpm):
     version = version_from_rpm_filename(rpm)
@@ -260,6 +274,7 @@ if __name__ == '__main__':
         n_branches = len(branches)
         if n_branches == 0 or (n_branches > 0 and branches[n_branches - 1].major != major):
             arch = arch_from_rpm_filename(pkg)
+            distro = distro_from_rpm_filename(pkg)
             branches.append(Branch(major, major, minor, micro, arch))
             branches.append(Branch(major + "-dkms", major, minor, micro, arch))
 
@@ -286,12 +301,14 @@ if __name__ == '__main__':
 
     for branch in branches:
         print('Branch: ' + branch.name + '(Version: ' + branch.version()  + ')')
+        time_stamp = now.strftime('%Y%m%d%H%M%S')
         out.line('document: modulemd')
         out.line('version: 2')
         out.line('data:')
         out.tab().line('name: nvidia-driver')
         out.tab().line('stream: ' + branch.name)
-        out.tab().line('version: ' + now.strftime('%Y%m%d%H%M%S'))
+        out.tab().line('version: ' + time_stamp)
+        out.tab().line('context: ' + get_stream_hash('nvidia-driver', branch.name, time_stamp, distro))
         out.tab().line('arch: ' + branch.arch)
         out.tab().line('summary: Nvidia driver for ' + branch.name + ' branch')
         out.tab().line('description: >-')
