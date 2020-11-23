@@ -106,7 +106,7 @@ class Branch:
 
 def get_stream_hash(name, stream, version, distro):
     uniq_str = name + stream + version + distro
-    hash_str = hashlib.md5(uniq_str.encode('utf-8')).hexdigest()[:12]
+    hash_str = hashlib.md5(uniq_str.encode('utf-8')).hexdigest()[:10]
     print('context: ' + hash_str + ' = ', name, stream, version, distro)
 
     return hash_str
