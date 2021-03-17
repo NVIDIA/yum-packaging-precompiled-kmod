@@ -7,6 +7,8 @@
 
 Packaging templates for `yum` and `dnf` based Linux distros to build NVIDIA driver precompiled kernel modules.
 
+For official packages [see this table](https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/precompiled/) and developer [blog post](https://developer.nvidia.com/blog/streamlining-nvidia-driver-deployment-on-rhel-8-with-modularity-streams/).
+
 The `main` branch contains this README and a sample build script. The `.spec` and `genmodules.py` files can be found in the appropriate [rhel7](../../tree/rhel7), [rhel8](../../tree/rhel8), and [fedora](../../tree/fedora) branches.
 
 ## Table of Contents
@@ -37,6 +39,7 @@ The `main` branch contains this README and a sample build script. The `.spec` an
   * [Red Hat Summit](#Red-Hat-Summit)
 - [Related](#Related)
   * [NVIDIA plugin](#NVIDIA-plugin)
+  * [NVIDIA driver](#NVIDIA-driver)
 - [Contributing](#Contributing)
 
 
@@ -48,7 +51,7 @@ This repo contains the `.spec` file used to build the following **RPM** packages
 
 * **RHEL8** or **Fedora** streams: `latest` and `XXX`
   ```shell
-  kmod-nvidia-${driver}-${kernel}-${kernel}-${rel}.${dist}.${arch}.rpm
+  kmod-nvidia-${driver}-${kernel}-${driver}-${rel}.${dist}.${arch}.rpm
   > ex: kmod-nvidia-440.33.01-4.18.0-147.5.1-440.33.01-2.el8_1.x86_64.rpm
   > ex: kmod-nvidia-450.51.06-5.6.11-300-450.51.06-4.fc32.x86_64.rpm
   ```
@@ -418,8 +421,8 @@ yum clean all
 - _dnf-plugin-nvidia_ & _yum-plugin-nvidia_
   * [https://github.com/NVIDIA/yum-packaging-nvidia-plugin](https://github.com/NVIDIA/yum-packaging-nvidia-plugin)
 
-> *note:* more `git` repos with various `.spec` files **coming soon!**
-
+- nvidia-driver ([and 6 more](https://github.com/topics/yum-packaging?user=NVIDIA))
+    * [https://github.com/NVIDIA/yum-packaging-nvidia-driver](https://github.com/NVIDIA/yum-packaging-nvidia-driver)
 
 ## Contributing
 
