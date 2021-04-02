@@ -361,8 +361,14 @@ if __name__ == '__main__':
         out.tab().tab().tab().line('rpms:')
         for pkg in sorted(existing_branch_pkgs):
             out.tab().tab().tab().tab().line('- ' + pkg)
+
         if branch.is_dkms():
             out.tab().tab().tab().tab().line('- kmod-nvidia-latest-dkms')
+        else:
+            out.tab().tab().line('src:')
+            out.tab().tab().tab().line('description: Source headers for compilation')
+            out.tab().tab().tab().line('rpms:')
+            out.tab().tab().tab().tab().line('- nvidia-kmod-headers')
 
         if branch.arch == "x86_64":
             out.tab().tab().line('fm:')
@@ -385,6 +391,7 @@ if __name__ == '__main__':
         for pkg in sorted(existing_branch_pkgs):
             if "cuda-drivers" not in pkg:
                 out.tab().tab().tab().tab().line('- ' + pkg)
+
         if branch.is_dkms():
             out.tab().tab().tab().tab().line('- kmod-nvidia-latest-dkms')
 
