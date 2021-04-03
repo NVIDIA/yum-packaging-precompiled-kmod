@@ -370,7 +370,7 @@ yum clean all
 ## Modularity Profiles
 
 
-* **RHEL8** or **Fedora** profiles: `default`, `ks`, `fm`
+* **RHEL8** or **Fedora** profiles: `default`, `ks`, `fm`, `src`
   ```shell
   dnf module install nvidia-driver:${stream}/${profile}
   > ex: dnf module install nvidia-driver:450/fm
@@ -396,6 +396,18 @@ yum clean all
   dnf module install nvidia-driver:${stream}/fm
   ```
   > *note*: this is intended for hardware containing NvSwitch such as DGX systems
+
+  The Source profile (`src`) installs only the contents of `/usr/src/nvidia-${version}` which provides `nv_p2p.h` and other header files used for compiling NVIDIA kernel modules such as [GDRCopy](https://github.com/NVIDIA/gdrcopy) and [nvidia-fs](https://github.com/NVIDIA/gds-nvidia-fs
+  > *note*: this profile is only compatible with precompiled streams (`latest`, `XXX`); DKMS streams use `kmod-nvidia-latest-dkms`
+
+  ```shell
+  dnf module install nvidia-driver:${stream}/src
+  ```
+  > *note*: this profile should be combined with another profile, i.e `default`, `ks`, or `fm`
+
+  ```shell
+  dnf module install nvidia-driver:${stream}/{default,src}
+  ```
 
 
 ## Presentations
