@@ -397,7 +397,7 @@ yum clean all
   ```
   > *note*: this is intended for hardware containing NvSwitch such as DGX systems
 
-  The Source profile (`src`) installs only the contents of `/usr/src/nvidia-${version}` which provides `nv_p2p.h` and other header files used for compiling NVIDIA kernel modules such as [GDRCopy](https://github.com/NVIDIA/gdrcopy) and [nvidia-fs](https://github.com/NVIDIA/gds-nvidia-fs
+  The Source profile (`src`) installs only the contents of `/usr/src/nvidia-${version}` which provides `nv-p2p.h` and other header files used for compiling NVIDIA kernel modules such as [GDRCopy](https://github.com/NVIDIA/gdrcopy) and [nvidia-fs](https://github.com/NVIDIA/gds-nvidia-fs)
   > *note*: this profile is only compatible with precompiled streams (`latest`, `XXX`); DKMS streams use `kmod-nvidia-latest-dkms`
 
   ```shell
