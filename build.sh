@@ -1,11 +1,33 @@
 #!/usr/bin/env bash
-err() { echo; echo "ERROR: $*"; exit 1; }
-kmd() { echo; echo ">>> $*" | fold -s; eval "$*" || err "at line \`$*\`"; }
-get_gpgkey() { gpgKey=$(gpg --list-secret-keys --with-colons | grep "^sec" | sort -t: -k 5 -r | grep -o -E "[A-Z0-9]{8,}" | grep "[0-9]" | grep "[A-Z]" | grep -oE "[0-9A-Z]{8}$"); }
 
 # Inputs
-runfile=$(readlink -e "$1")
+runfile="$1"
 distro="$2"
+
+# Build defaults
+topdir="$HOME/precompiled-kmod"
+stream="latest"
+epoch=3
+
+[[ -n $distro ]] ||
+distro=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+[[ $distro == "main" ]] && distro="rhel8"
+
+drvname=$(basename "$runfile")
+arch=$(echo "$drvname" | awk -F "-" '{print $3}')
+[[ -n $arch ]] || arch="x86_64"
+version=$(echo "$drvname" | sed -e "s|NVIDIA\-Linux\-${arch}\-||" -e 's|\.run$||' -e 's|\-grid$||' -e 's|\.tar\..*||' -e 's|nvidia\-settings\-||')
+drvbranch=$(echo "$version" | awk -F "." '{print $1}')
+
+# Driver defaults
+tarball=nvidia-kmod-${version}-${arch}
+unpackDir="unpack"
+
+err() { echo; echo "ERROR: $*"; exit 1; }
+kmd() { echo; echo ">>> $*" | fold -s; eval "$*" || err "at line \`$*\`"; }
+dep() { type -p "$1" >/dev/null || err "missing dependency $1"; }
+get_gpgkey() { gpgKey=$(gpg --list-secret-keys --with-colons | grep "^sec" | sort -t: -k 5 -r | grep -o -E "[A-Z0-9]{8,}" | grep "[0-9]" | grep "[A-Z]" | grep -oE "[0-9A-Z]{8}$"); }
+
 
 # X.509 defaults
 userName=$USER
@@ -21,17 +43,6 @@ gpgKey=""
 [[ $gpgKey ]] || get_gpgkey
 gpgArgs="$gpgBin --force-v3-sigs --digest-algo=sha512  --no-verbose --no-armor --no-secmem-warning"
 
-# Build defaults
-epoch=3
-stream="latest"
-topdir="$HOME/precompiled"
-arch="x86_64"
-
-# Driver defaults
-version=$(basename "$runfile" | sed -e "s|NVIDIA\-Linux\-${arch}\-||" -e 's|\.run$||')
-tarball=nvidia-kmod-${version}-${arch}
-unpackDir="unpack"
-
 # Kernel defaults
 kernel=$(uname -r | awk -F '-' '{print $1}')
 release=$(uname -r | awk -F '-' '{print $2}' | sed -r 's|\.[a-z]{2}[0-9]+| |' | awk '{print $1}')
@@ -39,7 +50,6 @@ dist=$(uname -r | awk -F '-' '{print $2}' | sed -r -e 's|\.[a-z]{2}[0-9]+| &|' -
 
 # CUDA defaults
 baseURL="http://developer.download.nvidia.com/compute/cuda/repos"
-[[ $distro ]] || distro="rhel8"
 downloads=$topdir/repo
 
 # Repo defaults
@@ -324,10 +334,18 @@ for pkg in "$topdir/RPMS/${arch}"/*; do
 done
 echo
 
-# Copy RPMs from CUDA repository
-echo "==> copy_rpms($baseURL/$distro/$arch)"
-copy_rpms
-echo
+if [[ -d "$OUTPUT" ]]; then
+    mkdir -p "$downloads"
+    # Copy RPMs built from https://github.com/NVIDIA/yum-packaging-*
+    # nvidia-driver dkms-nvidia nvidia-kmod-common nvidia-modprobe nvidia-persistenced nvidia-plugin nvidia-settings nvidia-xconfig
+    rsync -av "$topdir/RPMS/$arch"/*.rpm "$OUTPUT"/
+    rsync -av "$OUTPUT"/*.rpm "$downloads"/
+else
+    echo "==> copy_rpms($baseURL/$distro/$arch)"
+    # Copy RPMs from CUDA repository
+    copy_rpms
+    echo
+fi
 
 # Generate repodata
 echo "==> make_repo()"
