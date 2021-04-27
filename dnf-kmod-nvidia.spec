@@ -28,7 +28,7 @@
 %define kmod_modules		nvidia nvidia-uvm nvidia-modeset nvidia-drm
 # For compatibility with upstream Negativo17 shell scripts, we use nvidia-kmod
 # instead of kmod-nvidia for the source tarball.
-%define kmod_source_name	%{kmod_vendor}-kmod-%{kmod_driver_version}-x86_64
+%define kmod_source_name	%{kmod_vendor}-kmod-%{kmod_driver_version}-%{_arch}
 %define kmod_kernel_source	/usr/src/kernels/%{kmod_kernel_version}.%{_arch}
 
 # Global re-define for the strip command we apply to all the .o files
@@ -63,7 +63,7 @@ BuildRequires:	redhat-rpm-config
 BuildRequires:	elfutils-libelf-devel
 BuildRequires:	%{_ld}
 BuildRequires:	openssl
-ExclusiveArch:	x86_64
+ExclusiveArch:	x86_64 ppc64le aarch64
 
 %if 0%{?rhel} == 7
 	%global _use_internal_dependency_generator 0
@@ -277,6 +277,9 @@ install -m 755 ld.gold %{buildroot}/%{postld}
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
+* Tue Apr 27 2021 Kevin Mittman <kmittman@nvidia.com>
+ - Unofficial support for ppc64le and aarch64
+
 * Wed Oct 21 2020 Kevin Mittman <kmittman@nvidia.com>
  - Include architecture in depmod command
 

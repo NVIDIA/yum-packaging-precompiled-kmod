@@ -26,7 +26,7 @@
 %define kmod_modules		nvidia nvidia-uvm nvidia-modeset nvidia-drm
 # For compatibility with upstream Negativo17 shell scripts, we use nvidia-kmod
 # instead of kmod-nvidia for the source tarball.
-%define kmod_source_name	%{kmod_vendor}-kmod-%{kmod_driver_version}-x86_64
+%define kmod_source_name	%{kmod_vendor}-kmod-%{kmod_driver_version}-%{_arch}
 %define kmod_kernel_source	/usr/src/kernels/%{kmod_kernel_version}.%{_arch}
 
 # Global re-define for the strip command we apply to all the .o files
@@ -61,7 +61,7 @@ BuildRequires:	redhat-rpm-config
 BuildRequires:	elfutils-libelf-devel
 BuildRequires:	%{_ld}
 BuildRequires:	openssl
-ExclusiveArch:	x86_64
+ExclusiveArch:	x86_64 ppc64le aarch64
 
 %if 0%{?rhel} == 7
 	%global _use_internal_dependency_generator 0
@@ -119,8 +119,8 @@ rm nvidia-modeset.o
 
 # Link our own nvidia.o and nvidia-modeset.o from the -interface.o and the -kernel.o.
 # This is necessary because we just stripped the input .o files
-%{_ld} -r -m elf_x86_64 -o nvidia.o nvidia/nv-interface.o nvidia/nv-kernel.o
-%{_ld} -r -m elf_x86_64 -o nvidia-modeset.o nvidia-modeset/nv-modeset-interface.o nvidia-modeset/nv-modeset-kernel.o
+%{_ld} -r -m elf_%{_arch} -o nvidia.o nvidia/nv-interface.o nvidia/nv-kernel.o
+%{_ld} -r -m elf_%{_arch} -o nvidia-modeset.o nvidia-modeset/nv-modeset-interface.o nvidia-modeset/nv-modeset-kernel.o
 
 
 # The build above has already linked a module.ko, but we do it again here
@@ -131,7 +131,7 @@ for m in %{kmod_modules}; do
 	%{strip} ${m}.o --keep-symbol=init_module --keep-symbol=cleanup_module
 	rm ${m}.ko
 
-	%{_ld} -r -m elf_x86_64 \
+	%{_ld} -r -m elf_%{_arch} \
 		-z max-page-size=0x200000 -T %{kmod_kernel_source}/scripts/module-common.lds \
 		--build-id -r \
 		-o ${m}.ko \
@@ -172,31 +172,31 @@ mkdir -p %{kmod_module_path}
 chmod +x %{postld}
 
 # link nvidia.o
-%{postld} -m elf_x86_64 \
+%{postld} -m elf_%{_arch} \
 	-z max-page-size=0x200000 -r \
 	-o nvidia.o \
 	nvidia/nv-interface.o \
 	nvidia/nv-kernel.o
 
 %{strip} nvidia.o
-%{postld} -r -m elf_x86_64 -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia.ko nvidia.o nvidia.mod.o
+%{postld} -r -m elf_%{_arch} -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia.ko nvidia.o nvidia.mod.o
 rm nvidia.o
 
-%{postld} -r -m elf_x86_64 -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia-uvm.ko nvidia-uvm/nvidia-uvm.o nvidia-uvm.mod.o
+%{postld} -r -m elf_%{_arch} -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia-uvm.ko nvidia-uvm/nvidia-uvm.o nvidia-uvm.mod.o
 
 # nvidia-modeset.o
-%{postld} -m elf_x86_64 \
+%{postld} -m elf_%{_arch} \
 	-z max-page-size=0x200000 -r \
 	-o nvidia-modeset.o \
 	nvidia-modeset/nv-modeset-interface.o \
 	nvidia-modeset/nv-modeset-kernel.o
 
 %{strip} nvidia-modeset.o
-%{postld} -r -m elf_x86_64 -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia-modeset.ko nvidia-modeset.o nvidia-modeset.mod.o
+%{postld} -r -m elf_%{_arch} -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia-modeset.ko nvidia-modeset.o nvidia-modeset.mod.o
 rm nvidia-modeset.o
 
 
-%{postld} -r -m elf_x86_64 -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia-drm.ko nvidia-drm/nvidia-drm.o nvidia-drm.mod.o
+%{postld} -r -m elf_%{_arch} -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia-drm.ko nvidia-drm/nvidia-drm.o nvidia-drm.mod.o
 
 
 
@@ -273,6 +273,9 @@ install -m 755 ld.gold %{buildroot}/%{_bindir}/ld.gold.nvidia.%{kmod_driver_vers
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
+* Thu Apr 22 2021 Kevin Mittman <kmittman@nvidia.com>
+ - Unofficial support for ppc64le and aarch64
+
 * Wed Jul 10 2019 Kevin Mittman <kmittman@nvidia.com>
  - Fix for yum swap, add Conflicts: kmod-nvidia-latest-dkms
 
