@@ -53,6 +53,11 @@ BRANCH_PKGS = [
   'cuda-drivers',
 ]
 
+# Add-ons
+OPTIONAL_PKGS = [
+  'nvidia-fabric-manager',
+]
+
 class Writer:
     output = ''
 
@@ -321,6 +326,7 @@ if __name__ == '__main__':
         out.tab().line('artifacts:')
         out.tab().tab().line('rpms:')
         existing_branch_pkgs = set()
+        optional_branch_pkgs = set()
 
         for pkg in BRANCH_PKGS:
             latest_pkg = latest_rpm_from_pkgname(rpm_files, pkg, branch.version())
@@ -332,6 +338,11 @@ if __name__ == '__main__':
             for p in all_rpms_from_pkgname(rpm_files, pkg, branch.major):
                 out.tab().tab().tab().line('- ' + filename_to_nevra(p, repodir))
                 existing_branch_pkgs.add(pkg)
+
+        for opt in OPTIONAL_PKGS:
+            for o in all_rpms_from_pkgname(rpm_files, opt, branch.major):
+                out.tab().tab().tab().line('- ' + filename_to_nevra(o, repodir))
+                optional_branch_pkgs.add(opt)
 
         for pkg in LATEST_PKGS:
             latest_pkg = latest_rpm_from_pkgname(rpm_files, pkg)
@@ -379,10 +390,10 @@ if __name__ == '__main__':
             if branch.is_dkms():
                 out.tab().tab().tab().tab().line('- kmod-nvidia-latest-dkms')
             if "latest" in branch.name:
-                out.tab().tab().tab().tab().line('- ' + 'nvidia-fabricmanager-' + latest.major)
+                out.tab().tab().tab().tab().line('- ' + 'nvidia-fabric-manager')
                 out.tab().tab().tab().tab().line('- ' + 'libnvidia-nscq-' + latest.major)
             else:
-                out.tab().tab().tab().tab().line('- ' + 'nvidia-fabricmanager-' + branch.major)
+                out.tab().tab().tab().tab().line('- ' + 'nvidia-fabric-manager')
                 out.tab().tab().tab().tab().line('- ' + 'libnvidia-nscq-' + branch.major)
 
         out.tab().tab().line('ks:')
