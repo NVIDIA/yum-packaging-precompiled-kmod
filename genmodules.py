@@ -392,6 +392,9 @@ if __name__ == '__main__':
             if "latest" in branch.name:
                 out.tab().tab().tab().tab().line('- ' + 'nvidia-fabric-manager')
                 out.tab().tab().tab().tab().line('- ' + 'libnvidia-nscq-' + latest.major)
+            elif int(branch.major) < 460:
+                out.tab().tab().tab().tab().line('- ' + 'nvidia-fabricmanager-' + branch.major)
+                out.tab().tab().tab().tab().line('- ' + 'libnvidia-nscq-' + branch.major)
             else:
                 out.tab().tab().tab().tab().line('- ' + 'nvidia-fabric-manager')
                 out.tab().tab().tab().tab().line('- ' + 'libnvidia-nscq-' + branch.major)
