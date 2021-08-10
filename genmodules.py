@@ -55,6 +55,7 @@ BRANCH_PKGS = [
 
 # Add-ons
 OPTIONAL_PKGS = [
+  'nvidia-kmod-headers',
   'nvidia-fabric-manager',
 ]
 
