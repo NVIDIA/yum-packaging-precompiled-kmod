@@ -28,8 +28,15 @@
 %define kmod_modules		nvidia nvidia-uvm nvidia-modeset nvidia-drm
 # For compatibility with upstream Negativo17 shell scripts, we use nvidia-kmod
 # instead of kmod-nvidia for the source tarball.
-%define kmod_source_name	%{kmod_vendor}-kmod-%{kmod_driver_version}-%{_arch}
+%define kmod_source_name	%{kmod_vendor}-kmod-%{kmod_driver_version}-x86_64
 %define kmod_kernel_source	/usr/src/kernels/%{kmod_kernel_version}.%{_arch}
+
+# File was renamed in v5.10+ with 'kbuild: preprocess module linker script'
+%if 0%{?rhel} >= 9 || 0%{?fedora}
+	%global module_lds module.lds
+%else
+	%global module_lds module-common.lds
+%endif
 
 # Global re-define for the strip command we apply to all the .o files
 %define strip strip -g --strip-unneeded
@@ -51,7 +58,7 @@ Source2:	public_key.der
 
 Name:		kmod-%{kmod_vendor}-%{kmod_driver_version}-%{kmod_kernel}-%{kmod_kernel_release}
 Version:	%{kmod_driver_version}
-Release:	2%{kmod_dist}
+Release:	3%{kmod_dist}
 Summary:	NVIDIA graphics driver
 Group:		System/Kernel
 License:	Nvidia
@@ -63,7 +70,7 @@ BuildRequires:	redhat-rpm-config
 BuildRequires:	elfutils-libelf-devel
 BuildRequires:	%{_ld}
 BuildRequires:	openssl
-ExclusiveArch:	x86_64 ppc64le aarch64
+ExclusiveArch:	x86_64
 
 %if 0%{?rhel} == 7
 	%global _use_internal_dependency_generator 0
@@ -80,13 +87,14 @@ Supplements: (nvidia-driver = %{epoch}:%{kmod_driver_version} and kernel = %{kmo
 # We cannot require the version of the driver in the kmod package since
 # dnf won't remove the kmod package automatically when enabling a different
 # module stream. This will cause the transaction to fail.
-#Requires:	nvidia-driver = %%{epoch}:%%{version}
+#Requires:	nvidia-driver = %{epoch}:%{version}
 
 # This works though and will automatically remove the kmod package when removing
 # the kernel package.
 Requires: (kernel = %{kmod_kernel_version} if kernel)
 Conflicts: kmod-nvidia-latest-dkms
-%endif
+
+%endif # fedora/rhel8
 
 %description
 The NVidia %{kmod_driver_version} display driver kernel module for kernel %{kmod_kernel_version}
@@ -139,7 +147,7 @@ for m in %{kmod_modules}; do
 	rm ${m}.ko
 
 	%{_ld} -r \
-		-z max-page-size=0x200000 -T %{kmod_kernel_source}/scripts/module-common.lds \
+		-z max-page-size=0x200000 -T %{kmod_kernel_source}/scripts/%{module_lds} \
 		--build-id -r \
 		-o ${m}.ko \
 		${m}.o \
@@ -164,8 +172,8 @@ for m in %{kmod_modules}; do
 done
 
 # We don't want to require kernel-devel at installation time on the user system, so we
-# copy the module-common.lds of the kernel we're building against into the package.
-cp %{kmod_kernel_source}/scripts/module-common.lds .
+# copy the module*.lds of the kernel we're building against into the package.
+cp %{kmod_kernel_source}/scripts/%{module_lds} .
 
 # Copy linker
 cp %{_ld} .
@@ -185,10 +193,10 @@ chmod +x %{postld}
 	nvidia/nv-kernel.o
 
 %{strip} nvidia.o
-%{postld} -r -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia.ko nvidia.o nvidia.mod.o
+%{postld} -r -T %{kmod_share_dir}/%{module_lds} --build-id -o %{kmod_module_path}/nvidia.ko nvidia.o nvidia.mod.o
 rm nvidia.o
 
-%{postld} -r -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia-uvm.ko nvidia-uvm/nvidia-uvm.o nvidia-uvm.mod.o
+%{postld} -r -T %{kmod_share_dir}/%{module_lds} --build-id -o %{kmod_module_path}/nvidia-uvm.ko nvidia-uvm/nvidia-uvm.o nvidia-uvm.mod.o
 
 # nvidia-modeset.o
 %{postld} -z max-page-size=0x200000 -r \
@@ -197,11 +205,11 @@ rm nvidia.o
 	nvidia-modeset/nv-modeset-kernel.o
 
 %{strip} nvidia-modeset.o
-%{postld} -r -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia-modeset.ko nvidia-modeset.o nvidia-modeset.mod.o
+%{postld} -r -T %{kmod_share_dir}/%{module_lds} --build-id -o %{kmod_module_path}/nvidia-modeset.ko nvidia-modeset.o nvidia-modeset.mod.o
 rm nvidia-modeset.o
 
 
-%{postld} -r -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia-drm.ko nvidia-drm/nvidia-drm.o nvidia-drm.mod.o
+%{postld} -r -T %{kmod_share_dir}/%{module_lds} --build-id -o %{kmod_module_path}/nvidia-drm.ko nvidia-drm/nvidia-drm.o nvidia-drm.mod.o
 
 
 
@@ -255,7 +263,7 @@ install nvidia-drm.sig %{buildroot}/%{kmod_o_dir}/
 install nvidia-drm.o %{buildroot}/%{kmod_o_dir}/nvidia-drm/
 
 # misc
-install -m 644 -D module-common.lds %{buildroot}/%{kmod_share_dir}/
+install -m 644 -D %{module_lds} %{buildroot}/%{kmod_share_dir}/
 
 install -m 755 ld.gold %{buildroot}/%{postld}
 
@@ -277,8 +285,8 @@ install -m 755 ld.gold %{buildroot}/%{postld}
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
-* Tue Apr 27 2021 Kevin Mittman <kmittman@nvidia.com>
- - Unofficial support for ppc64le and aarch64
+* Wed Mar 31 2021 Kevin Mittman <kmittman@nvidia.com>
+ - Kernels version 5.10+ rename modules-common.lds to modules.lds
 
 * Wed Oct 21 2020 Kevin Mittman <kmittman@nvidia.com>
  - Include architecture in depmod command
@@ -293,7 +301,7 @@ rm -rf $RPM_BUILD_ROOT
 * Thu Apr 30 2020 Kevin Mittman <kmittman@nvidia.com>
  - Unique ld.gold filename
 
-* Tue Apr 28 2020 Timm Bäder <tbaeder@redhat.com>
+* Wed Apr 28 2020 Timm Bäder <tbaeder@redhat.com>
  - Removed unused kmod_rpm_release variable
  - Fix kernel_dist fallback to %%{dist}
  - Remove -m elf_x86_64 argument from linker invocations
