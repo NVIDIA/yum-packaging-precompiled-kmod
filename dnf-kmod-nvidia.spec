@@ -25,11 +25,18 @@
 # NOTE: We disambiguate the installation path of the .o files twice, once for the driver version
 # and once for the kernel version. This might not be necessary (in the future).
 %define kmod_o_dir		%{_libdir}/nvidia/%{_target}/%{kmod_driver_version}/%{kmod_kernel_version}
-%define kmod_modules		nvidia nvidia-uvm nvidia-modeset nvidia-drm
+%define kmod_modules		nvidia nvidia-uvm nvidia-modeset nvidia-drm nvidia-peermem
 # For compatibility with upstream Negativo17 shell scripts, we use nvidia-kmod
 # instead of kmod-nvidia for the source tarball.
 %define kmod_source_name	%{kmod_vendor}-kmod-%{kmod_driver_version}-%{_arch}
 %define kmod_kernel_source	/usr/src/kernels/%{kmod_kernel_version}.%{_arch}
+
+# File was renamed in v5.10+ with 'kbuild: preprocess module linker script'
+%if 0%{?rhel} >= 9 || 0%{?fedora}
+	%global module_lds module.lds
+%else
+	%global module_lds module-common.lds
+%endif
 
 # Global re-define for the strip command we apply to all the .o files
 %define strip strip -g --strip-unneeded
@@ -45,13 +52,17 @@
 %define sbindir %( if [ -d "/sbin" -a \! -h "/sbin" ]; then echo "/sbin"; else echo %{_sbindir}; fi )
 
 Source0:	%{kmod_source_name}.tar.xz
+%if 0%{?hsm} == 0
 Source1:	private_key.priv
 Source2:	public_key.der
+%else
+Source3:    %{hsm_wrapper_script}
+%endif
 
 
 Name:		kmod-%{kmod_vendor}-%{kmod_driver_version}-%{kmod_kernel}-%{kmod_kernel_release}
 Version:	%{kmod_driver_version}
-Release:	2%{kmod_dist}
+Release:	3%{kmod_dist}
 Summary:	NVIDIA graphics driver
 Group:		System/Kernel
 License:	Nvidia
@@ -106,10 +117,16 @@ KERNEL_OUTPUT=%{kmod_kernel_source}
 #KERNEL_SOURCES=/lib/modules/%{kmod_kernel_version}.%{_target_cpu}/source/
 #KERNEL_OUTPUT=/lib/modules/%{kmod_kernel_version}.%{_target_cpu}/build
 
+
 # These could affect the linking so we unset them both there and in %post
 unset LD_RUN_PATH
 unset LD_LIBRARY_PATH
 
+
+#
+# Compile kernel modules
+#
+%if 0%{?hsm} == 0 || 0%{?hsm} == 1
 %{make_build} SYSSRC=${KERNEL_SOURCES} SYSOUT=${KERNEL_OUTPUT}
 
 # These will be used together with the .mod.o file as input for ld,
@@ -118,6 +135,7 @@ unset LD_LIBRARY_PATH
 %{strip} nvidia/nv-interface.o
 %{strip} nvidia-uvm.o
 %{strip} nvidia-drm.o
+%{strip} nvidia-peermem/nvidia-peermem.o
 %{strip} nvidia-modeset/nv-modeset-interface.o
 
 # Just to be safe
@@ -128,7 +146,7 @@ rm nvidia-modeset.o
 # This is necessary because we just stripped the input .o files
 %{_ld} -r -o nvidia.o nvidia/nv-interface.o nvidia/nv-kernel.o
 %{_ld} -r -o nvidia-modeset.o nvidia-modeset/nv-modeset-interface.o nvidia-modeset/nv-modeset-kernel.o
-
+%{_ld} -r -o nvidia-peermem.o nvidia-peermem/nvidia-peermem.o
 
 # The build above has already linked a module.ko, but we do it again here
 # so we can first %{strip} the module.o, which we also do at installation time.
@@ -139,16 +157,53 @@ for m in %{kmod_modules}; do
 	rm ${m}.ko
 
 	%{_ld} -r \
-		-z max-page-size=0x200000 -T %{kmod_kernel_source}/scripts/module-common.lds \
+		-z max-page-size=0x200000 -T %{kmod_kernel_source}/scripts/%{module_lds} \
 		--build-id -r \
 		-o ${m}.ko \
 		${m}.o \
 		${m}.mod.o
 done
+%endif
+
+
+# We don't want to require kernel-devel at installation time on the user system, so we
+# copy the module*.lds of the kernel we're building against into the package.
+cp %{kmod_kernel_source}/scripts/%{module_lds} .
+
+# Copy linker
+cp %{_ld} .
+
+
+# Use two pass rpmbuild when signing using a HSM
+# First  rpmbuild --define "hsm 1" -bc
+# Second rpmbuild --define "hsm 2" -bc --short-circuit
+# Third  rpmbuild --define "hsm 2" -bi --short-circuit
+# Four   rpmbuild --define "hsm 2" -bb --short-circuit
+
+# First pass, no signing
+%if 0%{?hsm} == 1
+echo "HSM part 1"
+pwd
+for m in %{kmod_modules}; do
+    du -b "${m}.ko"
+    %{SOURCE3} ${m} %{name}
+done
+
+# Use HSM signed modules
+# Detach the signatures from each .ko
+# Ship only the signature portion
+%elif 0%{?hsm} == 2
+echo "HSM part 2"
+for m in %{kmod_modules}; do
+    [[ -f ${m}.ko-signature ]] || exit 1
+	ko_size=`du -b "${m}.ko" | cut -f1`
+	tail ${m}.ko-signature -c +$(($ko_size + 1)) > ${m}.sig
+done
 
 # Sign modules.
 # We keep both the signed and unsigned version around so we can cut off the
 # signature from the signed part. Shipped will be only the signature file.
+%else
 SIGN_FILE=%{kmod_kernel_source}/scripts/sign-file
 for m in %{kmod_modules}; do
 	${SIGN_FILE} sha256 %{SOURCE1} %{SOURCE2} ${m}.ko ${m}.ko.signed
@@ -162,13 +217,7 @@ for m in %{kmod_modules}; do
         # cat ${m}.sig >> ${m}.test.ko
         # diff ${m}.ko.signed ${m}.test.ko
 done
-
-# We don't want to require kernel-devel at installation time on the user system, so we
-# copy the module-common.lds of the kernel we're building against into the package.
-cp %{kmod_kernel_source}/scripts/module-common.lds .
-
-# Copy linker
-cp %{_ld} .
+%endif
 
 
 %post
@@ -185,10 +234,11 @@ chmod +x %{postld}
 	nvidia/nv-kernel.o
 
 %{strip} nvidia.o
-%{postld} -r -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia.ko nvidia.o nvidia.mod.o
+%{postld} -r -T %{kmod_share_dir}/%{module_lds} --build-id -o %{kmod_module_path}/nvidia.ko nvidia.o nvidia.mod.o
 rm nvidia.o
 
-%{postld} -r -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia-uvm.ko nvidia-uvm/nvidia-uvm.o nvidia-uvm.mod.o
+# nvidia-uvm.o
+%{postld} -r -T %{kmod_share_dir}/%{module_lds} --build-id -o %{kmod_module_path}/nvidia-uvm.ko nvidia-uvm/nvidia-uvm.o nvidia-uvm.mod.o
 
 # nvidia-modeset.o
 %{postld} -z max-page-size=0x200000 -r \
@@ -197,12 +247,14 @@ rm nvidia.o
 	nvidia-modeset/nv-modeset-kernel.o
 
 %{strip} nvidia-modeset.o
-%{postld} -r -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia-modeset.ko nvidia-modeset.o nvidia-modeset.mod.o
+%{postld} -r -T %{kmod_share_dir}/%{module_lds} --build-id -o %{kmod_module_path}/nvidia-modeset.ko nvidia-modeset.o nvidia-modeset.mod.o
 rm nvidia-modeset.o
 
+#nvidia-drm.o
+%{postld} -r -T %{kmod_share_dir}/%{module_lds} --build-id -o %{kmod_module_path}/nvidia-drm.ko nvidia-drm/nvidia-drm.o nvidia-drm.mod.o
 
-%{postld} -r -T %{kmod_share_dir}/module-common.lds --build-id -o %{kmod_module_path}/nvidia-drm.ko nvidia-drm/nvidia-drm.o nvidia-drm.mod.o
-
+# nvidia-peermem.o
+%{postld} -r -T %{kmod_share_dir}/%{module_lds} --build-id -o %{kmod_module_path}/nvidia-peermem.ko nvidia-peermem/nvidia-peermem.o nvidia-peermem.mod.o
 
 
 # Sign all the linked .ko files by just appending the signature we've
@@ -211,10 +263,10 @@ for m in %{kmod_modules}; do
 	cat %{kmod_o_dir}/${m}.sig >> %{kmod_module_path}/${m}.ko
 done
 
-depmod -a -w %{kmod_kernel_version}.%{_arch}
+depmod -a %{kmod_kernel_version}.%{_arch}
 
 %postun
-depmod -a -w %{kmod_kernel_version}.%{_arch}
+depmod -a %{kmod_kernel_version}.%{_arch}
 
 
 %install
@@ -223,6 +275,7 @@ mkdir -p %{buildroot}/%{kmod_o_dir}/nvidia/
 mkdir -p %{buildroot}/%{kmod_o_dir}/nvidia-uvm/
 mkdir -p %{buildroot}/%{kmod_o_dir}/nvidia-modeset/
 mkdir -p %{buildroot}/%{kmod_o_dir}/nvidia-drm/
+mkdir -p %{buildroot}/%{kmod_o_dir}/nvidia-peermem/
 mkdir -p %{buildroot}/%{kmod_share_dir}
 mkdir -p %{buildroot}/%{_bindir}
 
@@ -254,8 +307,13 @@ install nvidia-drm.mod.o %{buildroot}/%{kmod_o_dir}/
 install nvidia-drm.sig %{buildroot}/%{kmod_o_dir}/
 install nvidia-drm.o %{buildroot}/%{kmod_o_dir}/nvidia-drm/
 
+# peermem
+install nvidia-peermem.mod.o %{buildroot}/%{kmod_o_dir}/
+install nvidia-peermem.sig %{buildroot}/%{kmod_o_dir}/
+install nvidia-peermem.o %{buildroot}/%{kmod_o_dir}/nvidia-peermem/
+
 # misc
-install -m 644 -D module-common.lds %{buildroot}/%{kmod_share_dir}/
+install -m 644 -D %{module_lds} %{buildroot}/%{kmod_share_dir}/
 
 install -m 755 ld.gold %{buildroot}/%{postld}
 
@@ -271,14 +329,24 @@ install -m 755 ld.gold %{buildroot}/%{postld}
 %ghost %{kmod_module_path}/nvidia.ko
 %ghost %{kmod_module_path}/nvidia-uvm.ko
 %ghost %{kmod_module_path}/nvidia-drm.ko
+%ghost %{kmod_module_path}/nvidia-peermem.ko
 %ghost %{kmod_module_path}/nvidia-modeset.ko
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
+* Wed Jul 07 2021 Kevin Mittman <kmittman@nvidia.com>
+ - Add two-pass HSM certificate signing flow
+
 * Tue Apr 27 2021 Kevin Mittman <kmittman@nvidia.com>
  - Unofficial support for ppc64le and aarch64
+
+* Wed Mar 31 2021 Kevin Mittman <kmittman@nvidia.com>
+ - Kernels version 5.10+ rename modules-common.lds to modules.lds
+
+* Mon Feb 08 2021 Kevin Mittman <kmittman@nvidia.com>
+ - Add nvidia-peermem module
 
 * Wed Oct 21 2020 Kevin Mittman <kmittman@nvidia.com>
  - Include architecture in depmod command
