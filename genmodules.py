@@ -56,6 +56,7 @@ BRANCH_PKGS = [
 # Add-ons
 OPTIONAL_PKGS = [
   'nvidia-kmod-headers',
+  'nvidia-kmod-source',
   'nvidia-fabric-manager',
 ]
 
@@ -109,6 +110,9 @@ class Branch:
 
     def is_dkms(self):
         return 'dkms' in self.name
+
+    def is_open(self):
+        return 'open' in self.name
 
 def get_stream_hash(name, stream, version, distro):
     uniq_str = name + stream + version + distro
@@ -168,7 +172,7 @@ def sort_rpms(rpms):
     return sorted(rpms, reverse = True, key = verkey_rpms)
 
 def rpm_is_kmod(filename):
-    return filename.startswith(KMOD_PKG_PREFIX) and not 'dkms' in filename
+    return filename.startswith(KMOD_PKG_PREFIX) and not 'dkms' and not 'open' in filename
 
 def kmod_belongs_to(kmod_filename, branch):
     return branch.version() in kmod_filename
@@ -283,6 +287,8 @@ if __name__ == '__main__':
             distro = distro_from_rpm_filename(pkg)
             branches.append(Branch(major, major, minor, micro, arch))
             branches.append(Branch(major + "-dkms", major, minor, micro, arch))
+            if int(major) > 510:
+                branches.append(Branch(major + "-open", major, minor, micro, arch))
 
     branches = sorted(branches)
 
@@ -304,6 +310,10 @@ if __name__ == '__main__':
     print('Latest Branch: ' + latest_branch.version())
     latest_dkms_branch = Branch('latest-dkms', latest.major, latest.minor, latest.micro, latest.arch)
     branches.insert(1, latest_dkms_branch)
+    # Add 'open-dkms' branch with the same version as the 'latest-dkms' branch
+    if int(latest.major) > 510:
+        open_dkms_branch = Branch('open-dkms', latest.major, latest.minor, latest.micro, latest.arch)
+        branches.insert(2, open_dkms_branch)
 
     for branch in branches:
         print('Branch: ' + branch.name + '(Version: ' + branch.version()  + ')')
@@ -341,6 +351,10 @@ if __name__ == '__main__':
                 existing_branch_pkgs.add(pkg)
 
         for opt in OPTIONAL_PKGS:
+            if opt == "nvidia-kmod-headers" and branch.is_open():
+                break
+            if opt == "nvidia-kmod-source" and not branch.is_open():
+                break
             for o in all_rpms_from_pkgname(rpm_files, opt, branch.major):
                 out.tab().tab().tab().line('- ' + filename_to_nevra(o, repodir))
                 optional_branch_pkgs.add(opt)
@@ -352,7 +366,13 @@ if __name__ == '__main__':
             else:
                 print('WARNING: No package ' + str(pkg) + ' for branch ' + branch.name + ' found')
 
-        if branch.is_dkms():
+        if branch.is_open():
+            open_pkg = latest_rpm_from_pkgname(rpm_files, 'kmod-nvidia-open-dkms', branch.version())
+            if open_pkg:
+                out.tab().tab().tab().line('- ' + filename_to_nevra(open_pkg, repodir))
+            else:
+                print('WARNING: RPM kmod-nvidia-open-dkms in version ' + branch.version() + ' not found')
+        elif branch.is_dkms():
             dkms_pkg = latest_rpm_from_pkgname(rpm_files, 'kmod-nvidia-latest-dkms', branch.version())
             if dkms_pkg:
                 out.tab().tab().tab().line('- ' + filename_to_nevra(dkms_pkg, repodir))
@@ -374,7 +394,13 @@ if __name__ == '__main__':
         for pkg in sorted(existing_branch_pkgs):
             out.tab().tab().tab().tab().line('- ' + pkg)
 
-        if branch.is_dkms():
+        if branch.is_open():
+            out.tab().tab().tab().tab().line('- kmod-nvidia-open-dkms')
+            out.tab().tab().line('src:')
+            out.tab().tab().tab().line('description: Source files for compiling open kernel modules')
+            out.tab().tab().tab().line('rpms:')
+            out.tab().tab().tab().tab().line('- nvidia-kmod-source')
+        elif branch.is_dkms():
             out.tab().tab().tab().tab().line('- kmod-nvidia-latest-dkms')
         else:
             out.tab().tab().line('src:')
@@ -388,7 +414,9 @@ if __name__ == '__main__':
             out.tab().tab().tab().line('rpms:')
             for pkg in sorted(existing_branch_pkgs):
                 out.tab().tab().tab().tab().line('- ' + pkg)
-            if branch.is_dkms():
+            if branch.is_open():
+                out.tab().tab().tab().tab().line('- kmod-nvidia-open-dkms')
+            elif branch.is_dkms():
                 out.tab().tab().tab().tab().line('- kmod-nvidia-latest-dkms')
             if "latest" in branch.name:
                 out.tab().tab().tab().tab().line('- ' + 'nvidia-fabric-manager')
@@ -406,7 +434,9 @@ if __name__ == '__main__':
             out.tab().tab().tab().line('rpms:')
             for pkg in sorted(existing_branch_pkgs):
                 out.tab().tab().tab().tab().line('- ' + pkg)
-            if branch.is_dkms():
+            if branch.is_open():
+                out.tab().tab().tab().tab().line('- kmod-nvidia-open-dkms')
+            elif branch.is_dkms():
                 out.tab().tab().tab().tab().line('- kmod-nvidia-latest-dkms')
             out.tab().tab().tab().tab().line('- ' + 'nvidia-fabric-manager')
 
@@ -417,7 +447,9 @@ if __name__ == '__main__':
             if "cuda-drivers" not in pkg:
                 out.tab().tab().tab().tab().line('- ' + pkg)
 
-        if branch.is_dkms():
+        if branch.is_open():
+            out.tab().tab().tab().tab().line('- kmod-nvidia-open-dkms')
+        elif branch.is_dkms():
             out.tab().tab().tab().tab().line('- kmod-nvidia-latest-dkms')
 
         out.next()
