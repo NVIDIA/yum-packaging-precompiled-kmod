@@ -352,9 +352,9 @@ if __name__ == '__main__':
 
         for opt in OPTIONAL_PKGS:
             if opt == "nvidia-kmod-headers" and branch.is_open():
-                break
+                continue
             if opt == "nvidia-kmod-source" and not branch.is_open():
-                break
+                continue
             for o in all_rpms_from_pkgname(rpm_files, opt, branch.major):
                 out.tab().tab().tab().line('- ' + filename_to_nevra(o, repodir))
                 optional_branch_pkgs.add(opt)
