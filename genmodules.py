@@ -258,7 +258,7 @@ if __name__ == '__main__':
     now = datetime.datetime.now()
 
     repodir_contents = listdir(repodir)
-    rpm_files = [f for f in repodir_contents if isfile(join(repodir, f))]
+    rpm_files = [f for f in repodir_contents if f.endswith('.rpm') and isfile(join(repodir, f))]
     driver_rpms = [n for n in rpm_files if n.startswith(BRANCH_PKGS[0])]
     kmod_rpms = [n for n in rpm_files if rpm_is_kmod(n)]
 
