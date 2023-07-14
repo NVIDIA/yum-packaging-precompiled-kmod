@@ -9,7 +9,7 @@ Packaging templates for `yum` and `dnf` based Linux distros to build NVIDIA driv
 
 For official packages [see this table](https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/precompiled/) and developer [blog post](https://developer.nvidia.com/blog/streamlining-nvidia-driver-deployment-on-rhel-8-with-modularity-streams/).
 
-The `main` branch contains this README and a sample build script. The `.spec` and `genmodules.py` files can be found in the appropriate [rhel7](../../tree/rhel7), [rhel8](../../tree/rhel8), and [fedora](../../tree/fedora) branches.
+The `main` branch contains this README and a sample build script. The `.spec` files can be found in the appropriate [rhel7](../../tree/rhel7), [rhel8](../../tree/rhel8), and [fedora](../../tree/fedora) branches.
 
 ## Table of Contents
 
@@ -30,6 +30,7 @@ The `main` branch contains this README and a sample build script. The `.spec` an
   * [Sign RPM packages with GPG signing key](#Sign-RPM-packages-with-GPG-signing-key)
 - [RPM Repository](#RPM-Repository)
   * [Other NVIDIA driver packages](#Other-NVIDIA-driver-packages)
+  * [Python script](#Python-script)
   * [Generate metadata](#Generate-metadata)
   * [Enable local repo](#Enable-local-repo)
 - [Installing packages](#Installing-packages)
@@ -55,7 +56,7 @@ This repo contains the `.spec` file used to build the following **RPM** packages
   > ex: kmod-nvidia-440.33.01-4.18.0-147.5.1-440.33.01-2.el8_1.x86_64.rpm
   > ex: kmod-nvidia-450.51.06-5.6.11-300-450.51.06-4.fc32.x86_64.rpm
   ```
-  *note:* requires `genmodules.py` to generate `modules.yaml` for [modularity streams](https://docs.pagure.org/modularity/).
+  *note:* requires [`genmodules.py`](https://github.com/NVIDIA/cuda-repo-management/blob/main/genmodules.py) to generate `modules.yaml` for [modularity streams](https://docs.pagure.org/modularity/).
 
 * **RHEL7** flavor: `latest`
   ```shell
@@ -296,6 +297,12 @@ Copy relevant packages from the [CUDA repository](http://developer.download.nvid
 * nvidia-persistenced-${flavor}-${version}*.rpm
 * nvidia-settings-${version}*.rpm
 * nvidia-xconfig-${flavor}-${version}*.rpm
+```
+
+### Python script
+
+```shell
+wget https://raw.githubusercontent.com/NVIDIA/cuda-repo-management/main/genmodules.py
 ```
 
 ### Generate metadata
