@@ -8,7 +8,7 @@ For general information: https://www.redhat.com/en/blog/uefi-secure-boot
 [![asciinema](https://img.shields.io/badge/Play%20Video-asciinema-red)](https://developer.download.nvidia.com/compute/github-demos/yum-packaging-precompiled-kmod/uefi-mok-ascii/)
 
 ## Verify that Secure Boot is enabled
-* The installation media (ISO-9660 image on CD/USB) for RHEL 8.x is bootable with UEFI Secure Boot enabled.
+* The installation media (ISO-9660 image on CD/USB) for RHEL is bootable with UEFI Secure Boot enabled.
   * NOTE: make sure to select the EFI boot option to install an appropriate boot loader
 
 ```shell
@@ -34,7 +34,7 @@ $ sudo dnf module install nvidia-driver:XXX
 ```
 
 ### Runlevel 3
-A clean install of RHEL 8.x (without the NVIDIA driver) is bootable with UEFI Secure Boot enabled. Once the NVIDIA driver is installed, the nouveau driver will be disabled.
+A clean install of RHEL (without the NVIDIA driver) is bootable with UEFI Secure Boot enabled. Once the NVIDIA driver is installed, the nouveau driver will be disabled.
 Without the key enrolled in the MOK, the nvidia kernel modules will be unable to load. Therefore the system will either fallback to the VESA driver (if supported) or runlevel 3 (virtual terminal).
 
 ```shell
