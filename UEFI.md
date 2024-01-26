@@ -54,6 +54,9 @@ _note:_ skip this step if using your own certificate
   - [See table](https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/precompiled/) for supported kmod packages
   - Key is subject to change in a future release
 
+* [NVIDIA 2019 for RHEL9](https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/NVIDIA2019-public_key.der): `NVIDIA2019-public_key.der`
+  - [See table](https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/precompiled/) for supported kmod packages
+  - Key is subject to change in a future release
 
 ### mokutil
 ```shell
