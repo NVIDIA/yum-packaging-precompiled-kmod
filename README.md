@@ -435,6 +435,10 @@ yum clean all
 
 ## Related
 
+### [UEFI](UEFI.md) Secure Boot guide
+
+### [OCI](OCI.md) containerization guide
+
 ### NVIDIA plugin
 
 - _dnf-plugin-nvidia_ & _yum-plugin-nvidia_
