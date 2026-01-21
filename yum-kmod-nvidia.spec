@@ -261,7 +261,7 @@ install -m 755 ld.gold %{buildroot}/%{_bindir}/ld.gold.nvidia.%{kmod_driver_vers
 
 %{kmod_o_dir}
 %{kmod_share_dir}
-%{_bindir}/ld.gold.nvidia.%{kmod_driver_version}
+%attr(755, root, root) %{_bindir}/ld.gold.nvidia.%{kmod_driver_version}
 
 %ghost %{kmod_module_path}
 %ghost %{kmod_module_path}/nvidia.ko
