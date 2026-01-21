@@ -44,9 +44,12 @@ gpgKey=""
 gpgArgs="$gpgBin --force-v3-sigs --digest-algo=sha512  --no-verbose --no-armor --no-secmem-warning"
 
 # Kernel defaults
+# Example `uname -r` output:
+#     Upstream Fedora kernel: 6.10.5-200.fc40.x86_64
+#     Custom Fedora kernel: 6.10.5-201.custom.fc40.x86_64
 kernel=$(uname -r | awk -F '-' '{print $1}')
-release=$(uname -r | awk -F '-' '{print $2}' | sed -r 's|\.[a-z]{2}[0-9]+| |' | awk '{print $1}')
-dist=$(uname -r | awk -F '-' '{print $2}' | sed -r -e 's|\.[a-z]{2}[0-9]+| &|' -e "s|\.${arch}||" | awk '{print $2}')
+release=$(uname -r | awk -F '-' '{print $2}' | sed -r 's|\.[a-z]{2}[0-9]+| |' | awk '{print $1}' | cut -d. -f1)
+dist=$(uname -r | rev | cut -d. -f2 | rev)
 
 # CUDA defaults
 baseURL="http://developer.download.nvidia.com/compute/cuda/repos"
