@@ -14,6 +14,7 @@ The `main` branch contains this README and a sample build script. The `.spec` fi
 ## Table of Contents
 
 - [Overview](#Overview)
+- [Status](#Status)
 - [Deliverables](#Deliverables)
 - [Prerequisites](#Prerequisites)
   * [Clone this git repository](#Clone-this-git-repository)
@@ -42,6 +43,19 @@ The `main` branch contains this README and a sample build script. The `.spec` fi
   * [NVIDIA plugin](#NVIDIA-plugin)
   * [NVIDIA driver](#NVIDIA-driver)
 - [Contributing](#Contributing)
+
+
+## Status
+
+| Distro | Arch | NVIDIA Flavor | Signed-by | Repo published | Status |
+|---|---|---|---|---|---|
+| RHEL10 | x86_64 | OpenGPU | Red Hat | [RHEL Extensions](https://www.redhat.com/en/blog/introducing-new-and-simplified-ai-accelerator-driver-experience-rhel) | Active |
+| RHEL9 | x86_64 | OpenGPU | Red Hat | [CUDA Tech Preview](https://developer.download.nvidia.com/compute/cuda/preview/repos/rhel9/x86_64/precompiled/) | EOL |
+| RHEL9 | x86_64 | Proprietary | NVIDIA | [CUDA monorepo](https://developer.download.nvidia.com/compute/cuda/repos/rhel9/x86_64/precompiled/) | Maintenance |
+| RHEL8 | x86_64 | Proprietary | NVIDIA | [CUDA monorepo](https://developer.download.nvidia.com/compute/cuda/repos/rhel8/x86_64/precompiled/) | Maintenance |
+| RHEL7 | x86_64 | Proprietary | NVIDIA | [CUDA Tech Preview](https://developer.download.nvidia.com/compute/cuda/preview/repos/rhel7/x86_64/) | EOL |
+
+For other distro vendor availability, please see: [DISTROS.md](https://github.com/NVIDIA/yum-packaging-precompiled-kmod/blob/main/DISTROS.md)
 
 
 ## Deliverables
